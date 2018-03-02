@@ -157,13 +157,13 @@ export interface DecorationOverviewRulerOptions {
     position?: OverviewRulerLane;
 }
 
-export class Style implements Disposable {
+export class DecorationStyle implements Disposable {
 
     constructor(
         readonly selector: string,
         styleProvider: (style: CSSStyleDeclaration) => void,
     ) {
-        Styles.createRule(selector, styleProvider);
+        DecorationStyles.createRule(selector, styleProvider);
     }
 
     get className(): string {
@@ -171,12 +171,12 @@ export class Style implements Disposable {
     }
 
     dispose(): void {
-        Styles.deleteRule(this.selector);
+        DecorationStyles.deleteRule(this.selector);
     }
 
 }
 
-export namespace Styles {
+export namespace DecorationStyles {
 
     export function copyStyle(from: CSSStyleDeclaration, to: CSSStyleDeclaration): void {
         Object.keys(from).forEach(key => {

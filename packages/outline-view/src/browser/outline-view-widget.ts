@@ -87,7 +87,7 @@ export class OutlineViewWidget extends TreeWidget {
     }
 
     protected onUpdateRequest(msg: Message): void {
-        if (!this.model.selectedNode && ISelectableTreeNode.is(this.model.root)) {
+        if (!this.model.selectedNodes && ISelectableTreeNode.is(this.model.root)) {
             this.model.selectNode(this.model.root);
         }
         super.onUpdateRequest(msg);

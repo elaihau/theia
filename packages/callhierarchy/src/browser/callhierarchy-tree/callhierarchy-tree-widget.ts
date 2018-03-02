@@ -41,7 +41,8 @@ export class CallHierarchyTreeWidget extends TreeWidget {
         this.title.iconClass = 'fa fa-arrow-circle-down';
         this.title.closable = true;
         this.addClass(HIERARCHY_TREE_CLASS);
-        this.model.onSelectionChanged((node: Readonly<ISelectableTreeNode> | undefined) => {
+        this.model.onSelectionChanged(selection => {
+            const node = selection[0];
             if (node) {
                 this.openEditor(node, true);
             }
@@ -64,7 +65,7 @@ export class CallHierarchyTreeWidget extends TreeWidget {
     }
 
     protected onUpdateRequest(msg: Message) {
-        if (!this.model.selectedNode && ISelectableTreeNode.is(this.model.root)) {
+        if (!this.model.selectedNodes && ISelectableTreeNode.is(this.model.root)) {
             this.model.selectNode(this.model.root);
         }
         super.onUpdateRequest(msg);

@@ -17,6 +17,8 @@ import { SelectionService } from '@theia/core/lib/common';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { LabelProvider } from '@theia/core/lib/browser/label-provider';
 import { h } from "@phosphor/virtualdom/lib";
+import { ISelectableTreeNode } from '@theia/core/lib/browser/tree/tree-selection';
+import { isOSX } from '@theia/core/lib/common/os';
 
 export const FILE_NAVIGATOR_ID = 'files';
 export const LABEL = 'Files';
@@ -59,13 +61,15 @@ export class FileNavigatorWidget extends FileTreeWidget {
     }
 
     protected deflateForStorage(node: ITreeNode): object {
-        const copy = Object.assign({}, node) as any;
+        // tslint:disable-next-line:no-any
+        const copy = { ...node } as any;
         if (copy.uri) {
             copy.uri = copy.uri.toString();
         }
         return super.deflateForStorage(copy);
     }
 
+    // tslint:disable-next-line:no-any
     protected inflateFromStorage(node: any, parent?: ITreeNode): ITreeNode {
         if (node.uri) {
             node.uri = new URI(node.uri);
@@ -84,13 +88,11 @@ export class FileNavigatorWidget extends FileTreeWidget {
     }
 
     protected handleCopy(event: ClipboardEvent): void {
-        const node = this.model.selectedFileStatNode;
-        if (!node) {
-            return;
+        const uris = [...this.model.selectedFileStatNodes].map(node => node.uri.toString());
+        if (uris.length > 0) {
+            event.clipboardData.setData('text/plain', uris.join('\n'));
+            event.preventDefault();
         }
-        const uri = node.uri.toString();
-        event.clipboardData.setData('text/plain', uri);
-        event.preventDefault();
     }
 
     protected handlePaste(event: ClipboardEvent): void {
@@ -101,6 +103,23 @@ export class FileNavigatorWidget extends FileTreeWidget {
         const uri = new URI(raw);
         if (this.model.copy(uri)) {
             event.preventDefault();
+        }
+    }
+
+    protected handleClickEvent(node: ITreeNode | undefined, event: MouseEvent): void {
+        if (node) {
+            const multi = isOSX ? event.metaKey : event.ctrlKey;
+            if (ISelectableTreeNode.is(node)) {
+                if (multi && node.selected) {
+                    this.model.unselectNode(node);
+                } else {
+                    this.model.selectNode(node, { multi });
+                }
+            }
+            if (!multi && this.isExpandable(node)) {
+                this.model.toggleNodeExpansion(node);
+            }
+            event.stopPropagation();
         }
     }
 

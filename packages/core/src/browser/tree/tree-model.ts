@@ -8,7 +8,7 @@
 import { inject, injectable } from "inversify";
 import { DisposableCollection, Event, Emitter, SelectionProvider } from "../../common";
 import { ITree, ITreeNode, ICompositeTreeNode } from "./tree";
-import { ITreeSelectionService, ISelectableTreeNode } from "./tree-selection";
+import { ITreeSelectionService, ISelectableTreeNode, TreeSelection } from "./tree-selection";
 import { ITreeExpansionService, IExpandableTreeNode } from "./tree-expansion";
 import { TreeNavigationService } from "./tree-navigation";
 import { ITreeNodeIterator, TreeNodeIterator, BackwardTreeNodeIterator } from "./tree-iterator";
@@ -82,7 +82,7 @@ export class TreeServices {
 }
 
 @injectable()
-export class TreeModel implements ITreeModel, SelectionProvider<Readonly<ISelectableTreeNode>> {
+export class TreeModel implements ITreeModel, SelectionProvider<TreeSelection> {
 
     protected readonly onChangedEmitter = new Emitter<void>();
     protected readonly onOpenNodeEmitter = new Emitter<ITreeNode>();
@@ -106,8 +106,10 @@ export class TreeModel implements ITreeModel, SelectionProvider<Readonly<ISelect
         this.toDispose.push(this.expansion);
         this.toDispose.push(this.expansion.onExpansionChanged(node => {
             this.fireChanged();
-            if (!node.expanded && ICompositeTreeNode.isAncestor(node, this.selectedNode)) {
-                this.selectNode(ISelectableTreeNode.isVisible(node) ? node : undefined);
+            if (!node.expanded && [...this.selectedNodes].some(selectedNode => ICompositeTreeNode.isAncestor(node, selectedNode))) {
+                if (ISelectableTreeNode.isVisible(node)) {
+                    this.selectNode(node);
+                }
             }
         }));
 
@@ -158,16 +160,20 @@ export class TreeModel implements ITreeModel, SelectionProvider<Readonly<ISelect
         }
     }
 
-    get selectedNode() {
-        return this.selection.selectedNode;
+    get selectedNodes() {
+        return this.selection.selectedNodes;
     }
 
     get onSelectionChanged() {
         return this.selection.onSelectionChanged;
     }
 
-    selectNode(node: ISelectableTreeNode | undefined): void {
-        this.selection.selectNode(node);
+    selectNode(node: ISelectableTreeNode, options?: ITreeSelectionService.Options): void {
+        this.selection.selectNode(node, options);
+    }
+
+    unselectNode(node: ISelectableTreeNode | undefined): void {
+        this.selection.unselectNode(node);
     }
 
     get onExpansionChanged() {
@@ -175,36 +181,39 @@ export class TreeModel implements ITreeModel, SelectionProvider<Readonly<ISelect
     }
 
     expandNode(raw?: Readonly<IExpandableTreeNode>): boolean {
-        const node = raw || this.selectedNode;
-        if (IExpandableTreeNode.is(node)) {
-            return this.expansion.expandNode(node);
+        for (const node of raw ? [raw] : this.selectedNodes) {
+            if (IExpandableTreeNode.is(node)) {
+                return this.expansion.expandNode(node);
+            }
         }
         return false;
     }
 
     collapseNode(raw?: Readonly<IExpandableTreeNode>): boolean {
-        const node = raw || this.selectedNode;
-        if (IExpandableTreeNode.is(node)) {
-            return this.expansion.collapseNode(node);
+        for (const node of raw ? [raw] : this.selectedNodes) {
+            if (IExpandableTreeNode.is(node)) {
+                return this.expansion.collapseNode(node);
+            }
         }
         return false;
     }
 
     toggleNodeExpansion(raw?: Readonly<IExpandableTreeNode>): void {
-        const node = raw || this.selectedNode;
-        if (IExpandableTreeNode.is(node)) {
-            this.expansion.toggleNodeExpansion(node);
+        for (const node of raw ? [raw] : this.selectedNodes) {
+            if (IExpandableTreeNode.is(node)) {
+                return this.expansion.toggleNodeExpansion(node);
+            }
         }
     }
 
     selectPrevNode(): void {
-        const node = this.selectedNode;
+        const node = this.selectedNodes[0];
         const iterator = this.createBackwardIterator(node);
         this.selectNextVisibleNode(iterator);
     }
 
     selectNextNode(): void {
-        const node = this.selectedNode;
+        const node = this.selectedNodes[0];
         const iterator = this.createIterator(node);
         this.selectNextVisibleNode(iterator);
     }
@@ -233,7 +242,7 @@ export class TreeModel implements ITreeModel, SelectionProvider<Readonly<ISelect
     }
 
     openNode(raw?: ITreeNode | undefined): void {
-        const node = raw || this.selectedNode;
+        const node = raw || (TreeSelection.isSingle(this.selectedNodes) ? this.selectedNodes[0] : undefined);
         if (node) {
             this.doOpenNode(node);
             this.onOpenNodeEmitter.fire(node);
@@ -247,10 +256,12 @@ export class TreeModel implements ITreeModel, SelectionProvider<Readonly<ISelect
     }
 
     selectParent(): void {
-        const node = this.selectedNode;
-        const parent = ISelectableTreeNode.getVisibleParent(node);
-        if (parent) {
-            this.selectNode(parent);
+        if (TreeSelection.isSingle(this.selectedNodes)) {
+            const node = this.selectedNodes[0];
+            const parent = ISelectableTreeNode.getVisibleParent(node);
+            if (parent) {
+                this.selectNode(parent);
+            }
         }
     }
 

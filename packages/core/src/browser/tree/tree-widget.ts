@@ -106,7 +106,7 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
 
     protected onActivateRequest(msg: Message): void {
         super.onActivateRequest(msg);
-        if (!this.model.selectedNode && ISelectableTreeNode.is(this.model.root)) {
+        if (!this.model.selectedNodes && ISelectableTreeNode.is(this.model.root)) {
             this.model.selectNode(this.model.root);
         }
         this.node.focus();

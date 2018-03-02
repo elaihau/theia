@@ -59,12 +59,8 @@ export class FileTreeModel extends TreeModel implements LocationService {
         }
     }
 
-    get selectedFileStatNode(): Readonly<FileStatNode> | undefined {
-        const selectedNode = this.selectedNode;
-        if (FileStatNode.is(selectedNode)) {
-            return selectedNode;
-        }
-        return undefined;
+    get selectedFileStatNodes(): Readonly<FileStatNode>[] {
+        return [...this.selectedNodes].filter(FileStatNode.is);
     }
 
     protected onFilesChanged(changes: FileChange[]): void {
@@ -111,7 +107,7 @@ export class FileTreeModel extends TreeModel implements LocationService {
         if (uri.scheme !== 'file') {
             return false;
         }
-        const node = this.selectedFileStatNode;
+        const node = this.selectedFileStatNodes[0];
         if (!node) {
             return false;
         }

@@ -54,3 +54,8 @@ export namespace Prioritizeable {
         return p2.priority - p.priority;
     }
 }
+
+export interface ReadonlyArrayLike<T> extends ArrayLike<T> {
+    readonly length: number;
+    [index: number]: Readonly<T>;
+}

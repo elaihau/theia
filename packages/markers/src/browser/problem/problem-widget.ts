@@ -56,19 +56,15 @@ export class ProblemWidget extends TreeWidget {
     }
 
     protected handleCopy(event: ClipboardEvent) {
-        const node = this.model.selectedNode;
-        if (!node) {
-            return;
-        }
-        if (MarkerNode.is(node)) {
-            const uri = node.uri;
-            event.clipboardData.setData('text/plain', uri.toString());
+        const uris = [...this.model.selectedNodes].filter(MarkerNode.is).map(node => node.uri.toString());
+        if (uris.length > 0) {
+            event.clipboardData.setData('text/plain', uris.join('\n'));
             event.preventDefault();
         }
     }
 
     protected onUpdateRequest(msg: Message) {
-        if (!this.model.selectedNode && ISelectableTreeNode.is(this.model.root)) {
+        if (!this.model.selectedNodes && ISelectableTreeNode.is(this.model.root)) {
             this.model.selectNode(this.model.root);
         }
         super.onUpdateRequest(msg);

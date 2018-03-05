@@ -477,7 +477,7 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
     protected handleClickEvent(node: ITreeNode | undefined, event: MouseEvent): void {
         if (node) {
             if (!!this.props.multiSelect) {
-                const multi = isOSX ? event.metaKey : event.ctrlKey;
+                const multi = this.isMulti(event);
                 if (ISelectableTreeNode.is(node)) {
                     if (multi && node.selected) {
                         this.model.unselectNode(node);
@@ -507,7 +507,9 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
 
     protected handleContextMenuEvent(node: ITreeNode | undefined, event: MouseEvent): void {
         if (ISelectableTreeNode.is(node)) {
-            this.model.selectNode(node);
+            // Keep the selection for the context menu, if the widget support multi-selection and the right click happens on an already selected node.
+            const multi = !!this.props.multiSelect && node.selected;
+            this.model.selectNode(node, { multi });
             const contextMenuPath = this.props.contextMenuPath;
             if (contextMenuPath) {
                 this.onRender.push(Disposable.create(() =>
@@ -520,6 +522,10 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
         }
         event.stopPropagation();
         event.preventDefault();
+    }
+
+    protected isMulti(event: MouseEvent): boolean {
+        return isOSX ? event.metaKey : event.ctrlKey;
     }
 
     protected deflateForStorage(node: ITreeNode): object {

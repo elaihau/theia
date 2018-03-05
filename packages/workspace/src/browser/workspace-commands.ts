@@ -12,7 +12,7 @@ import { Command, CommandContribution, CommandHandler, CommandRegistry } from '@
 import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
 import { CommonMenus } from "@theia/core/lib/browser/common-frontend-contribution";
 import { FileSystem, FileStat } from '@theia/filesystem/lib/common/filesystem';
-import { UriSelection } from '@theia/core/lib/common/selection';
+import { UriSelection, StructuredSelection } from '@theia/core/lib/common/selection';
 import { SingleTextInputDialog, ConfirmDialog } from "@theia/core/lib/browser/dialogs";
 import { OpenerService, OpenHandler, open, FrontendApplication } from "@theia/core/lib/browser";
 import { WorkspaceService } from './workspace-service';
@@ -209,7 +209,17 @@ export class FileSystemCommandHandler implements CommandHandler {
         if (args && args[0] instanceof URI) {
             return args[0];
         }
-        return UriSelection.getUri(this.selectionService.selection);
+        const { selection } = this.selectionService;
+        if (UriSelection.is(selection)) {
+            return UriSelection.getUri(selection);
+        }
+        if (StructuredSelection.is(selection) && StructuredSelection.isSingle(selection)) {
+            const firstItem = StructuredSelection.firstItem(selection);
+            if (UriSelection.is(firstItem)) {
+                return UriSelection.getUri(firstItem);
+            }
+        }
+        return undefined;
     }
 
     execute(...args: any[]): object | undefined {

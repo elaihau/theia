@@ -12,6 +12,7 @@ import { ITreeSelectionService, ISelectableTreeNode, TreeSelection } from "./tre
 import { ITreeExpansionService, IExpandableTreeNode } from "./tree-expansion";
 import { TreeNavigationService } from "./tree-navigation";
 import { ITreeNodeIterator, TreeNodeIterator, BackwardTreeNodeIterator } from "./tree-iterator";
+import { StructuredSelection } from "../../common/selection";
 
 export const ITreeModel = Symbol("ITreeModel");
 
@@ -242,7 +243,7 @@ export class TreeModel implements ITreeModel, SelectionProvider<TreeSelection> {
     }
 
     openNode(raw?: ITreeNode | undefined): void {
-        const node = raw || (TreeSelection.isSingle(this.selectedNodes) ? this.selectedNodes[0] : undefined);
+        const node = raw || StructuredSelection.firstItem(this.selectedNodes);
         if (node) {
             this.doOpenNode(node);
             this.onOpenNodeEmitter.fire(node);
@@ -256,8 +257,8 @@ export class TreeModel implements ITreeModel, SelectionProvider<TreeSelection> {
     }
 
     selectParent(): void {
-        if (TreeSelection.isSingle(this.selectedNodes)) {
-            const node = this.selectedNodes[0];
+        if (StructuredSelection.isSingle(this.selectedNodes)) {
+            const node = StructuredSelection.firstItem(this.selectedNodes);
             const parent = ISelectableTreeNode.getVisibleParent(node);
             if (parent) {
                 this.selectNode(parent);

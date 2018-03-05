@@ -17,8 +17,6 @@ import { SelectionService } from '@theia/core/lib/common';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { LabelProvider } from '@theia/core/lib/browser/label-provider';
 import { h } from "@phosphor/virtualdom/lib";
-import { ISelectableTreeNode } from '@theia/core/lib/browser/tree/tree-selection';
-
 
 export const FILE_NAVIGATOR_ID = 'files';
 export const LABEL = 'Files';

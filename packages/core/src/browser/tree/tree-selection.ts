@@ -5,15 +5,17 @@
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import { injectable, inject } from "inversify";
-import { Event, Emitter, Disposable, SelectionProvider, StructuredSelection } from "../../common";
-import { ITree, ITreeNode } from "./tree";
+import { injectable, inject } from 'inversify';
+import { ITree, ITreeNode } from './tree';
+import { StructuredSelection } from '../../common/selection';
+import { Event, Emitter, Disposable, SelectionProvider } from '../../common';
 
 /**
  * Representation of a tree selection. The selected nodes can be accessed in inverse-chronological order.
  * The first item is the most recently selected node then come the others (if any).
  */
 export interface TreeSelection extends StructuredSelection<ISelectableTreeNode> {
+    [Symbol.iterator](): Iterator<Readonly<ISelectableTreeNode>>;
 }
 
 /**

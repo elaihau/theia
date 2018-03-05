@@ -17,7 +17,8 @@ import { NavigatorDecoratorService, NavigatorTreeDecorator } from './navigator-d
 
 export const FILE_NAVIGATOR_PROPS = <TreeProps>{
     ...defaultTreeProps,
-    contextMenuPath: NAVIGATOR_CONTEXT_MENU
+    contextMenuPath: NAVIGATOR_CONTEXT_MENU,
+    multiSelect: true
 };
 
 export function createFileNavigatorContainer(parent: interfaces.Container): Container {

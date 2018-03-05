@@ -20,6 +20,7 @@ import { IExpandableTreeNode } from "./tree-expansion";
 import { ISelectableTreeNode } from "./tree-selection";
 import { TreeDecoration, TreeDecoratorService } from "./tree-decorator";
 import { notEmpty } from '../../common/objects';
+import { isOSX } from '../../common/os';
 
 export const TREE_CLASS = 'theia-Tree';
 export const TREE_NODE_CLASS = 'theia-TreeNode';
@@ -45,6 +46,11 @@ export interface TreeProps {
      * the padding for the children will be calculated as `leftPadding * hierarchyDepth` and so on.
      */
     readonly leftPadding: number;
+
+    /**
+     * `true` if the tree widget support multi-selection. Otherwise, `false`. Defaults to `false`.
+     */
+    readonly multiSelect?: boolean;
 }
 
 export interface NodeProps {
@@ -470,11 +476,25 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
 
     protected handleClickEvent(node: ITreeNode | undefined, event: MouseEvent): void {
         if (node) {
-            if (ISelectableTreeNode.is(node)) {
-                this.model.selectNode(node);
-            }
-            if (this.isExpandable(node)) {
-                this.model.toggleNodeExpansion(node);
+            if (!!this.props.multiSelect) {
+                const multi = isOSX ? event.metaKey : event.ctrlKey;
+                if (ISelectableTreeNode.is(node)) {
+                    if (multi && node.selected) {
+                        this.model.unselectNode(node);
+                    } else {
+                        this.model.selectNode(node, { multi });
+                    }
+                }
+                if (!multi && this.isExpandable(node)) {
+                    this.model.toggleNodeExpansion(node);
+                }
+            } else {
+                if (ISelectableTreeNode.is(node)) {
+                    this.model.selectNode(node);
+                }
+                if (this.isExpandable(node)) {
+                    this.model.toggleNodeExpansion(node);
+                }
             }
             event.stopPropagation();
         }

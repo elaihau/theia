@@ -6,36 +6,14 @@
  */
 
 import { injectable, inject } from "inversify";
-import { Event, Emitter, Disposable, SelectionProvider } from "../../common";
+import { Event, Emitter, Disposable, SelectionProvider, StructuredSelection } from "../../common";
 import { ITree, ITreeNode } from "./tree";
-import { ReadonlyArrayLike } from '../../common/types';
 
 /**
- * Representation of a tree selection. Encapsulates zero to many selected tree nodes.
- * The selected nodes can be accessed in inverse-chronological order. The first item
- * is the most recently selected node then come the others (if any). When nothing is selected,
- * the tree selection is empty, accessing any item will result in `undefined`.
+ * Representation of a tree selection. The selected nodes can be accessed in inverse-chronological order.
+ * The first item is the most recently selected node then come the others (if any).
  */
-export interface TreeSelection extends ReadonlyArrayLike<ISelectableTreeNode>, Iterable<Readonly<ISelectableTreeNode>> {
-    // TODO readonly first: Readonly<ISelectableTreeNode> | undefined;
-}
-
-export namespace TreeSelection {
-
-    /**
-     * `true` if the argument is an empty selection. Otherwise, `false`.
-     */
-    export function isEmpty(selection: TreeSelection): boolean {
-        return selection.length === 0;
-    }
-
-    /**
-     * `true` if the argument represents exactly one selected tree node. Otherwise, `false`.
-     */
-    export function isSingle(selection: TreeSelection): boolean {
-        return selection.length === 1;
-    }
-
+export interface TreeSelection extends StructuredSelection<ISelectableTreeNode> {
 }
 
 /**

@@ -18,7 +18,7 @@ import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { LabelProvider } from '@theia/core/lib/browser/label-provider';
 import { h } from "@phosphor/virtualdom/lib";
 import { ISelectableTreeNode } from '@theia/core/lib/browser/tree/tree-selection';
-import { isOSX } from '@theia/core/lib/common/os';
+
 
 export const FILE_NAVIGATOR_ID = 'files';
 export const LABEL = 'Files';
@@ -103,23 +103,6 @@ export class FileNavigatorWidget extends FileTreeWidget {
         const uri = new URI(raw);
         if (this.model.copy(uri)) {
             event.preventDefault();
-        }
-    }
-
-    protected handleClickEvent(node: ITreeNode | undefined, event: MouseEvent): void {
-        if (node) {
-            const multi = isOSX ? event.metaKey : event.ctrlKey;
-            if (ISelectableTreeNode.is(node)) {
-                if (multi && node.selected) {
-                    this.model.unselectNode(node);
-                } else {
-                    this.model.selectNode(node, { multi });
-                }
-            }
-            if (!multi && this.isExpandable(node)) {
-                this.model.toggleNodeExpansion(node);
-            }
-            event.stopPropagation();
         }
     }
 

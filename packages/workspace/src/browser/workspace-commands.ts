@@ -6,18 +6,17 @@
  */
 
 import { inject, injectable } from 'inversify';
-import URI from "@theia/core/lib/common/uri";
-import { SelectionService } from '@theia/core/lib/common';
+import { validFilename } from 'valid-filename';
+import URI from '@theia/core/lib/common/uri';
+import { SelectionService } from '@theia/core/lib/common/selection-service';
 import { Command, CommandContribution, CommandHandler, CommandRegistry } from '@theia/core/lib/common/command';
 import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
-import { CommonMenus } from "@theia/core/lib/browser/common-frontend-contribution";
+import { CommonMenus } from '@theia/core/lib/browser/common-frontend-contribution';
 import { FileSystem, FileStat } from '@theia/filesystem/lib/common/filesystem';
 import { UriSelection, StructuredSelection } from '@theia/core/lib/common/selection';
-import { SingleTextInputDialog, ConfirmDialog } from "@theia/core/lib/browser/dialogs";
-import { OpenerService, OpenHandler, open, FrontendApplication } from "@theia/core/lib/browser";
+import { SingleTextInputDialog, ConfirmDialog } from '@theia/core/lib/browser/dialogs';
+import { OpenerService, OpenHandler, open, FrontendApplication } from '@theia/core/lib/browser';
 import { WorkspaceService } from './workspace-service';
-
-const validFilename = require('valid-filename');
 
 export namespace WorkspaceCommands {
     export const NEW_FILE: Command = {
@@ -58,10 +57,12 @@ export class FileMenuContribution implements MenuContribution {
             commandId: WorkspaceCommands.NEW_FOLDER.id
         });
     }
+
 }
 
 @injectable()
 export class WorkspaceCommandContribution implements CommandContribution {
+
     constructor(
         @inject(FileSystem) protected readonly fileSystem: FileSystem,
         @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
@@ -71,13 +72,13 @@ export class WorkspaceCommandContribution implements CommandContribution {
     ) { }
 
     registerCommands(registry: CommandRegistry): void {
-        registry.registerCommand(WorkspaceCommands.FILE_OPEN, this.newFileHandler({
+        registry.registerCommand(WorkspaceCommands.FILE_OPEN, this.newUriAwareCommandHandler({
             execute: uri => open(this.openerService, uri)
         }));
         this.openerService.getOpeners().then(openers => {
             for (const opener of openers) {
                 const openWithCommand = WorkspaceCommands.FILE_OPEN_WITH(opener);
-                registry.registerCommand(openWithCommand, this.newFileHandler({
+                registry.registerCommand(openWithCommand, this.newUriAwareCommandHandler({
                     execute: uri => opener.open(uri),
                     isEnabled: uri => opener.canHandle(uri) !== 0,
                     isVisible: uri => opener.canHandle(uri) !== 0
@@ -85,7 +86,7 @@ export class WorkspaceCommandContribution implements CommandContribution {
             }
         });
 
-        registry.registerCommand(WorkspaceCommands.NEW_FILE, this.newWorkspaceHandler({
+        registry.registerCommand(WorkspaceCommands.NEW_FILE, this.newWorkspaceRootUriAwareCommandHandler({
             execute: uri => this.getDirectory(uri).then(parent => {
                 const parentUri = new URI(parent.uri);
                 const vacantChildUri = this.findVacantChildUri(parentUri, parent, 'Untitled', '.txt');
@@ -102,7 +103,7 @@ export class WorkspaceCommandContribution implements CommandContribution {
                 });
             })
         }));
-        registry.registerCommand(WorkspaceCommands.NEW_FOLDER, this.newWorkspaceHandler({
+        registry.registerCommand(WorkspaceCommands.NEW_FOLDER, this.newWorkspaceRootUriAwareCommandHandler({
             execute: uri => this.getDirectory(uri).then(parent => {
                 const parentUri = new URI(parent.uri);
                 const vacantChildUri = this.findVacantChildUri(parentUri, parent, 'Untitled');
@@ -117,7 +118,7 @@ export class WorkspaceCommandContribution implements CommandContribution {
             })
         }));
 
-        registry.registerCommand(WorkspaceCommands.FILE_RENAME, this.newFileHandler({
+        registry.registerCommand(WorkspaceCommands.FILE_RENAME, this.newUriAwareCommandHandler({
             execute: uri => this.getParent(uri).then(parent => {
                 const dialog = new SingleTextInputDialog({
                     title: 'Rename File',
@@ -129,25 +130,39 @@ export class WorkspaceCommandContribution implements CommandContribution {
                 );
             })
         }));
-        registry.registerCommand(WorkspaceCommands.FILE_DELETE, this.newFileHandler({
-            execute: async uri => {
-                const dialog = new ConfirmDialog({
-                    title: 'Delete File',
-                    msg: `Do you really want to delete '${uri.path.base}'?`
-                });
-                if (await dialog.open()) {
-                    await this.fileSystem.delete(uri.toString());
+        registry.registerCommand(WorkspaceCommands.FILE_DELETE, this.newMultiUriAwareCommandHandler({
+            execute: async uris => {
+                if (uris.length > 0) {
+                    const single = uris.length === 0;
+                    const msg = `Do yo really want to delete ${single ? `${uris[0].path.base}?` : `the following files?`}`;
+                    const dialog = new ConfirmDialog({
+                        title: `Delete File${single ? '' : 's'}`,
+                        msg,
+                        details: {
+                            items: single ? [] : uris.map(u => u.path.base),
+                            style: 'ul'
+                        }
+                    });
+                    if (await dialog.open()) {
+                        // Make sure we delete the longest paths first, they might be nested. Longer paths come first.
+                        uris.sort((left, right) => right.toString().length - left.toString().length);
+                        await Promise.all(uris.map(uri => uri.toString()).map(uri => this.fileSystem.delete(uri)));
+                    }
                 }
             }
         }));
     }
 
-    protected newFileHandler(handler: UriCommandHandler): FileSystemCommandHandler {
-        return new FileSystemCommandHandler(this.selectionService, handler);
+    protected newUriAwareCommandHandler(handler: UriCommandHandler<URI>): UriAwareCommandHandler<URI> {
+        return new UriAwareCommandHandler(this.selectionService, handler);
     }
 
-    protected newWorkspaceHandler(handler: UriCommandHandler): WorkspaceRootAwareCommandHandler {
-        return new WorkspaceRootAwareCommandHandler(this.workspaceService, this.selectionService, handler);
+    protected newMultiUriAwareCommandHandler(handler: UriCommandHandler<URI[]>): UriAwareCommandHandler<URI[]> {
+        return new UriAwareCommandHandler(this.selectionService, handler, true);
+    }
+
+    protected newWorkspaceRootUriAwareCommandHandler(handler: UriCommandHandler<URI>): WorkspaceRootUriAwareCommandHandler {
+        return new WorkspaceRootUriAwareCommandHandler(this.workspaceService, this.selectionService, handler);
     }
 
     /**
@@ -194,55 +209,93 @@ export class WorkspaceCommandContribution implements CommandContribution {
     }
 }
 
-export interface UriCommandHandler {
-    execute(uri: URI, ...args: any[]): any;
+export interface UriCommandHandler<T extends URI | URI[]> {
+
+    // tslint:disable-next-line:no-any
+    execute(uri: T, ...args: any[]): any;
+
+    // tslint:disable-next-line:no-any
     isEnabled?(uri: URI, ...args: any[]): boolean;
+
+    // tslint:disable-next-line:no-any
     isVisible?(uri: URI, ...args: any[]): boolean;
+
 }
-export class FileSystemCommandHandler implements CommandHandler {
+
+export interface SingleUriCommandHandler extends UriCommandHandler<URI> {
+
+}
+
+export interface MultiUriCommandHandler extends UriCommandHandler<URI[]> {
+
+}
+
+export class UriAwareCommandHandler<T extends URI | URI[]> implements CommandHandler {
+
     constructor(
         protected readonly selectionService: SelectionService,
-        protected readonly handler: UriCommandHandler
+        protected readonly handler: UriCommandHandler<T>,
+        protected readonly multi: boolean = false
     ) { }
 
-    protected getUri(...args: any[]): URI | undefined {
+    // tslint:disable-next-line:no-any
+    protected getUri(...args: any[]): T | undefined {
         if (args && args[0] instanceof URI) {
-            return args[0];
+            return this.multi ? [args[0]] : args[0];
         }
         const { selection } = this.selectionService;
         if (UriSelection.is(selection)) {
-            return UriSelection.getUri(selection);
+            return (this.multi ? [selection.uri] : selection.uri) as T;
         }
-        if (StructuredSelection.is(selection) && StructuredSelection.isSingle(selection)) {
-            const firstItem = StructuredSelection.firstItem(selection);
-            if (UriSelection.is(firstItem)) {
-                return UriSelection.getUri(firstItem);
+        if (StructuredSelection.is(selection)) {
+            if (this.multi) {
+                const uris: URI[] = [];
+                for (const item of selection) {
+                    if (UriSelection.is(item)) {
+                        uris.push(item.uri);
+                    }
+                }
+                return uris as T;
+            } else if (StructuredSelection.isSingle(selection)) {
+                const firstItem = StructuredSelection.firstItem(selection);
+                if (UriSelection.is(firstItem)) {
+                    return firstItem.uri as T;
+                }
             }
         }
         return undefined;
     }
 
+    // tslint:disable-next-line:no-any
     execute(...args: any[]): object | undefined {
         const uri = this.getUri(...args);
         return uri ? this.handler.execute(uri, ...args) : undefined;
     }
 
+    // tslint:disable-next-line:no-any
     isVisible(...args: any[]): boolean {
         const uri = this.getUri(...args);
         if (uri) {
             if (this.handler.isVisible) {
-                return this.handler.isVisible(uri, ...args);
+                if (this.multi && Array.isArray(uri)) {
+                    return uri.every(u => this.handler.isVisible!(u, ...args));
+                }
+                return this.handler.isVisible(uri as URI, ...args);
             }
             return true;
         }
         return false;
     }
 
+    // tslint:disable-next-line:no-any
     isEnabled(...args: any[]): boolean {
         const uri = this.getUri(...args);
         if (uri) {
             if (this.handler.isEnabled) {
-                return this.handler.isEnabled(uri, ...args);
+                if (this.multi && Array.isArray(uri)) {
+                    return uri.every(u => this.handler.isEnabled!(u, ...args));
+                }
+                return this.handler.isEnabled(uri as URI, ...args);
             }
             return true;
         }
@@ -251,14 +304,14 @@ export class FileSystemCommandHandler implements CommandHandler {
 
 }
 
-export class WorkspaceRootAwareCommandHandler extends FileSystemCommandHandler {
+export class WorkspaceRootUriAwareCommandHandler extends UriAwareCommandHandler<URI> {
 
     protected rootUri: URI | undefined;
 
     constructor(
         protected readonly workspaceService: WorkspaceService,
         protected readonly selectionService: SelectionService,
-        protected readonly handler: UriCommandHandler
+        protected readonly handler: UriCommandHandler<URI>
     ) {
         super(selectionService, handler);
         workspaceService.root.then(root => {
@@ -271,4 +324,5 @@ export class WorkspaceRootAwareCommandHandler extends FileSystemCommandHandler {
     protected getUri(): URI | undefined {
         return UriSelection.getUri(this.selectionService.selection) || this.rootUri;
     }
+
 }

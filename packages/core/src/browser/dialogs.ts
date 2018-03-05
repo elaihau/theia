@@ -179,6 +179,10 @@ export class ConfirmDialogProps extends DialogProps {
     readonly msg: string;
     readonly cancel?: string;
     readonly ok?: string;
+    readonly details?: {
+        readonly items: string[];
+        readonly style?: 'ol' | 'ul';
+    };
 }
 
 export class ConfirmDialog extends AbstractDialog<boolean> {
@@ -190,8 +194,21 @@ export class ConfirmDialog extends AbstractDialog<boolean> {
 
         const messageNode = document.createElement("div");
         messageNode.textContent = props.msg;
-
         this.contentNode.appendChild(messageNode);
+
+        const details = this.props.details;
+        if (details && details.items.length > 0) {
+            const list = document.createElement(details.style || 'ul');
+            for (const item of details.items) {
+                const listItem = document.createElement('li');
+                listItem.textContent = item;
+                list.appendChild(listItem);
+            }
+            if (!details.style) {
+                list.style.listStyleType = 'none';
+            }
+            this.contentNode.appendChild(list);
+        }
 
         this.appendCloseButton(props.cancel);
         this.appendAcceptButton(props.ok);

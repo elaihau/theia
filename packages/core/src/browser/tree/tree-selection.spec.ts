@@ -105,7 +105,7 @@ describe('tree-selection', () => {
                 const nodes = test.initialState.map(id => createTreeNode(id, true));
                 const selection = nodes.find(n => n.id === test.selection) || createTreeNode(test.selection, false);
                 const service = new MockTreeSelectionService(nodes);
-                service.selectNode(selection!, { selectionType: test.selectionType });
+                service.setSelection(selection!, { selectionType: test.selectionType });
                 const actual = service.selectedNodes;
                 const expected = test.expectation.map(id => nodes.find(n => n.id === id) || createTreeNode(id, true));
                 expect(actual).to.be.deep.equal(expected, `Expected: ${JSON.stringify(expected)}, actual: ${JSON.stringify(actual)}`);
@@ -128,7 +128,7 @@ describe('tree-selection', () => {
         });
 
         it('jaj', () => {
-            selectionService.selectNode(findNode('1'));
+            selectionService.setSelection(findNode('1'));
             expect(selectionService.selectedNodes).to.have.lengthOf(1);
         });
 

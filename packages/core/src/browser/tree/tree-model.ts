@@ -5,93 +5,151 @@
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import { inject, injectable } from "inversify";
-import { DisposableCollection, Event, Emitter, SelectionProvider } from "../../common";
-import { Tree, TreeNode, CompositeTreeNode } from "./tree";
-import { TreeSelectionService, SelectableTreeNode, TreeSelection } from "./tree-selection";
-import { TreeExpansionService, ExpandableTreeNode } from "./tree-expansion";
-import { TreeNavigationService } from "./tree-navigation";
-import { TreeNodeIterator, TreeNodeIteratorImpl, BackwardTreeNodeIterator } from "./tree-iterator";
-import { StructuredSelection } from "../../common/selection";
-
-export const TreeModel = Symbol("TreeModel");
+import { inject, injectable } from 'inversify';
+import { DisposableCollection, Event, Emitter, SelectionProvider } from '../../common';
+import { Tree, TreeNode, CompositeTreeNode } from './tree';
+import { TreeSelectionService, SelectableTreeNode } from './tree-selection';
+import { TreeExpansionService, ExpandableTreeNode } from './tree-expansion';
+import { TreeNavigationService } from './tree-navigation';
+import { TreeNodeIterator, ForwardTreeNodeIterator, BackwardTreeNodeIterator } from './tree-iterator';
+import { StructuredSelection } from '../../common/selection';
 
 /**
  * The tree model.
  */
+export const TreeModel = Symbol('TreeModel');
 export interface TreeModel extends Tree, TreeSelectionService, TreeExpansionService {
+
     /**
-     * Expand a node taking into the account node selection if a given node is undefined.
+     * Expands the given node. If the `node` argument is `undefined`, then expands the currently selected tree node.
+     * If multiple tree nodes are selected, expands the most recently selected tree node.
      */
     expandNode(node?: Readonly<ExpandableTreeNode>): boolean;
+
     /**
-     * Collapse a node taking into the account node selection if a given node is undefined.
+     * Collapses the given node. If the `node` argument is `undefined`, then collapses the currently selected tree node.
+     * If multiple tree nodes are selected, collapses the most recently selected tree node.
      */
     collapseNode(node?: Readonly<ExpandableTreeNode>): boolean;
+
     /**
-     * Toggle node expansion taking into the account node selection if a given node is undefined.
+     * Toggles the expansion state of the given node. If not give, then it toggles the expansion state of the currently selected node.
+     * If multiple nodes are selected, then the most recently selected tree node's expansion state will be toggled.
      */
     toggleNodeExpansion(node?: Readonly<ExpandableTreeNode>): void;
+
     /**
-     * Select prev node relatively to the selected taking into account node expansion.
+     * Opens the given node or the currently selected on if the argument is `undefined`.
+     * If multiple nodes are selected, open the most recently selected node.
      */
-    selectPrevNode(): void;
+    openNode(node?: Readonly<TreeNode> | undefined): void;
+
     /**
-     * Select next node relatively to the selected taking into account node expansion.
+     * Event when a node should be opened.
      */
-    selectNextNode(): void;
+    readonly onOpenNode: Event<Readonly<TreeNode>>;
+
     /**
-     * Open a given node or a selected if the given is undefined.
-     */
-    openNode(node?: TreeNode | undefined): void;
-    /**
-     * Event for when a node should be opened.
-     */
-    readonly onOpenNode: Event<TreeNode>;
-    /**
-     * Select a parent node relatively to the selected taking into account node expansion.
+     * Selects the parent node relatively to the selected taking into account node expansion.
      */
     selectParent(): void;
+
     /**
-     * Navigate to the given node if it is defined.
+     * Navigates to the given node if it is defined.
      * Navigation sets a node as a root node and expand it.
      */
-    navigateTo(node: TreeNode | undefined): void;
+    navigateTo(node: Readonly<TreeNode> | undefined): void;
+
     /**
-     * Test whether it is possible to navigate forward.
+     * Tests whether it is possible to navigate forward.
      */
     canNavigateForward(): boolean;
+
     /**
-     * Test whether it is possible to navigate backward.
+     * Tests whether it is possible to navigate backward.
      */
     canNavigateBackward(): boolean;
+
     /**
-     * Navigate forward.
+     * Navigates forward.
      */
     navigateForward(): void;
+
     /**
-     * Navigate backward.
+     * Navigates backward.
      */
     navigateBackward(): void;
+
+    /**
+     * Selects the previous node relatively to the currently selected one. This method takes the expansion state of the tree into consideration.
+     */
+    selectPrevNode(keepSelection?: boolean): void;
+
+    /**
+     * Selects the next node relatively to the currently selected one. This method takes the expansion state of the tree into consideration.
+     */
+    selectNextNode(keepSelection?: boolean): void;
+
+    /**
+     * Selects the tree node argument.
+     *
+     *  - If the `keepSelection` argument is `false` or `undefined`, then it has the same effect as invoking `setSelection([node])`. The previous selection
+     * state will be overridden with given single tree node.
+     *  - If `keepSelection` is `true`, then the previous selection state will be kept and the `node` argument will be merged into the previous selection state.
+     *  - If `keepSelection` is `true` and the `node` was already selected, the selection content will not change but the order of the selected items. The
+     * `node` argument will be the most recently selected item.
+     */
+    selectNode(node: Readonly<SelectableTreeNode>, keepSelection?: boolean): void;
+
+    /**
+     * Unselects the given tree node argument. Has no effect, if the argument is not a valid tree node, or was not yet selected.
+     */
+    unselectNode(node: Readonly<SelectableTreeNode>): void;
+
+    /**
+     * Toggles the selection state of the `node` argument. If the node was not yet selected, it will be. Toggling the state of the tree node
+     * will keep any previous selection state. If the `node` was selected, `unselects` the node.
+     */
+    toggleSelection(node: Readonly<SelectableTreeNode>): void;
+
+    /**
+     * Returns with the nodes between (inclusive) the `toNode` and the `fromNode`. Returns with an empty array if either the `toNode` or the `fromNode` is invalid.
+     */
+    calculateRange(toNode: Readonly<SelectableTreeNode>, fromNode: Readonly<SelectableTreeNode>): ReadonlyArray<Readonly<SelectableTreeNode>>;
+
+    /**
+     * Calculates and sets the selection range between the `fromNode` and the `toNode`.
+     *  - Has not effect if either the `fromNode` or the `toNode` does not exist or invalid.
+     *  - If `keepSelection` is `true`, then the range of selection will be merged into the previous selection state.
+     *  - If `keepSelection` is `false` or `undefined`, then the previous state will be overridden with the selection range.
+     *  - If `fromNode` is `undefined`, then the most recently selected tree node will be used instead.
+     */
+    selectRange(toNode: Readonly<SelectableTreeNode>, fromNode?: Readonly<SelectableTreeNode>, keepSelection?: boolean): void;
+
+    /**
+     * Counterpart of the `selectRange` method. Calculates and removes the selection of the nodes which contained in the range.
+     */
+    unselectRange(toNode: Readonly<SelectableTreeNode>, fromNode?: Readonly<SelectableTreeNode>): void;
+
 }
 
 @injectable()
 export class TreeServices {
-    @inject(TreeSelectionService) readonly selection: TreeSelectionService;
-    @inject(TreeExpansionService) readonly expansion: TreeExpansionService;
-    @inject(TreeNavigationService) readonly navigation: TreeNavigationService;
+    @inject(TreeSelectionService) readonly selectionService: TreeSelectionService;
+    @inject(TreeExpansionService) readonly expansionService: TreeExpansionService;
+    @inject(TreeNavigationService) readonly navigationService: TreeNavigationService;
 }
 
 @injectable()
-export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection> {
+export class TreeModelImpl implements TreeModel, SelectionProvider<ReadonlyArray<Readonly<SelectableTreeNode>>> {
 
     protected readonly onChangedEmitter = new Emitter<void>();
     protected readonly onOpenNodeEmitter = new Emitter<TreeNode>();
     protected readonly toDispose = new DisposableCollection();
 
-    protected readonly selection: TreeSelectionService;
-    protected readonly expansion: TreeExpansionService;
-    protected readonly navigation: TreeNavigationService;
+    protected readonly selectionService: TreeSelectionService;
+    protected readonly expansionService: TreeExpansionService;
+    protected readonly navigationService: TreeNavigationService;
 
     constructor(
         @inject(Tree) protected readonly tree: Tree,
@@ -101,19 +159,20 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection
         this.toDispose.push(tree);
         this.toDispose.push(tree.onChanged(() => this.fireChanged()));
 
-        this.toDispose.push(this.selection);
-        this.toDispose.push(this.selection.onSelectionChanged(() => this.fireChanged()));
+        this.toDispose.push(this.selectionService);
+        this.toDispose.push(this.selectionService.onSelectionChanged(() => this.fireChanged()));
 
-        this.toDispose.push(this.expansion);
-        this.toDispose.push(this.expansion.onExpansionChanged(node => {
+        this.toDispose.push(this.expansionService);
+        this.toDispose.push(this.expansionService.onExpansionChanged(node => {
             this.fireChanged();
             if (!node.expanded && [...this.selectedNodes].some(selectedNode => CompositeTreeNode.isAncestor(node, selectedNode))) {
                 if (SelectableTreeNode.isVisible(node)) {
-                    this.selectNode(node);
+                    this.setSelection([node]);
                 }
             }
         }));
 
+        this.toDispose.push(this.onOpenNodeEmitter);
         this.toDispose.push(this.onChangedEmitter);
     }
 
@@ -162,29 +221,25 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection
     }
 
     get selectedNodes() {
-        return this.selection.selectedNodes;
+        return this.selectionService.selectedNodes;
     }
 
     get onSelectionChanged() {
-        return this.selection.onSelectionChanged;
+        return this.selectionService.onSelectionChanged;
     }
 
-    selectNode(node: SelectableTreeNode, props?: TreeSelectionService.SelectionProps): void {
-        this.selection.selectNode(node, props);
-    }
-
-    unselectNode(node: SelectableTreeNode | undefined): void {
-        this.selection.unselectNode(node);
+    setSelection(raw: ReadonlyArray<Readonly<SelectableTreeNode>>): void {
+        this.selectionService.setSelection(raw);
     }
 
     get onExpansionChanged() {
-        return this.expansion.onExpansionChanged;
+        return this.expansionService.onExpansionChanged;
     }
 
     expandNode(raw?: Readonly<ExpandableTreeNode>): boolean {
         for (const node of raw ? [raw] : this.selectedNodes) {
             if (ExpandableTreeNode.is(node)) {
-                return this.expansion.expandNode(node);
+                return this.expansionService.expandNode(node);
             }
         }
         return false;
@@ -193,7 +248,7 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection
     collapseNode(raw?: Readonly<ExpandableTreeNode>): boolean {
         for (const node of raw ? [raw] : this.selectedNodes) {
             if (ExpandableTreeNode.is(node)) {
-                return this.expansion.collapseNode(node);
+                return this.expansionService.collapseNode(node);
             }
         }
         return false;
@@ -202,7 +257,7 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection
     toggleNodeExpansion(raw?: Readonly<ExpandableTreeNode>): void {
         for (const node of raw ? [raw] : this.selectedNodes) {
             if (ExpandableTreeNode.is(node)) {
-                return this.expansion.toggleNodeExpansion(node);
+                return this.expansionService.toggleNodeExpansion(node);
             }
         }
     }
@@ -226,7 +281,7 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection
         }
         const node = result.value;
         if (SelectableTreeNode.isVisible(node)) {
-            this.selectNode(node);
+            this.setSelection([node]);
         }
     }
 
@@ -237,7 +292,7 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection
     }
 
     protected createIterator(node: TreeNode | undefined): TreeNodeIterator {
-        return new TreeNodeIteratorImpl(node, {
+        return new ForwardTreeNodeIterator(node, {
             pruneCollapsed: true
         });
     }
@@ -261,35 +316,35 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection
             const node = StructuredSelection.firstItem(this.selectedNodes);
             const parent = SelectableTreeNode.getVisibleParent(node);
             if (parent) {
-                this.selectNode(parent);
+                this.setSelection([parent]);
             }
         }
     }
 
     navigateTo(node: TreeNode | undefined): void {
         if (node) {
-            this.navigation.push(node);
+            this.navigationService.push(node);
             this.doNavigate(node);
         }
     }
 
     canNavigateForward(): boolean {
-        return !!this.navigation.next;
+        return !!this.navigationService.next;
     }
 
     canNavigateBackward(): boolean {
-        return !!this.navigation.prev;
+        return !!this.navigationService.prev;
     }
 
     navigateForward(): void {
-        const node = this.navigation.advance();
+        const node = this.navigationService.advance();
         if (node) {
             this.doNavigate(node);
         }
     }
 
     navigateBackward(): void {
-        const node = this.navigation.retreat();
+        const node = this.navigationService.retreat();
         if (node) {
             this.doNavigate(node);
         }
@@ -301,8 +356,85 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<TreeSelection
             this.expandNode(node);
         }
         if (SelectableTreeNode.is(node)) {
-            this.selectNode(node);
+            this.setSelection([node]);
         }
+    }
+
+    selectNode(node: Readonly<SelectableTreeNode>, keepSelection?: boolean): void {
+        if (!!keepSelection) {
+            const copy = this.selectedNodes.slice();
+            const index = copy.indexOf(node);
+            if (index === -1) {
+                this.selectionService.setSelection([node, ...copy]);
+            } else {
+                // No need to update the selection if the argument is already the most recently selected node at the 0th index.
+                if (index !== 0) {
+                    copy.splice(index, 1);
+                    copy.unshift(node);
+                    this.selectionService.setSelection(copy);
+                }
+            }
+        } else {
+            this.selectionService.setSelection([node]);
+        }
+    }
+
+    unselectNode(node: Readonly<SelectableTreeNode>): void {
+        const copy = this.selectedNodes.slice();
+        const index = copy.indexOf(node);
+        if (index !== -1) {
+            copy.splice(index, 1);
+            this.selectionService.setSelection(copy);
+        }
+    }
+
+    toggleSelection(node: Readonly<SelectableTreeNode>): void {
+        if (node.selected) {
+            this.unselectNode(node);
+        } else {
+            this.selectNode(node, true);
+        }
+    }
+
+    calculateRange(toNode: Readonly<SelectableTreeNode>, fromNode: Readonly<SelectableTreeNode>): ReadonlyArray<Readonly<SelectableTreeNode>> {
+        const to = this.tree.validateNode(toNode);
+        if (to === undefined) {
+            return [];
+        }
+        const from = this.tree.validateNode(fromNode);
+        if (from === undefined) {
+            return [];
+        }
+        const itr = new ForwardTreeNodeIterator(this.tree.root);
+        let next = itr.next();
+        while (!next.done) {
+            console.log('NODE', next.value!.id);
+            next = itr.next();
+        }
+
+        const toPath = this.pathToRoot(to);
+        const fromPath = this.pathToRoot(from);
+        const distinctTo = toPath.filter(node => fromPath.indexOf(node) === -1).filter(SelectableTreeNode.is);
+        const distinctFrom = fromPath.filter(node => toPath.indexOf(node) === -1).filter(SelectableTreeNode.is);
+        return [...distinctFrom.reverse(), ...distinctTo];
+    }
+
+    selectRange(toNode: Readonly<SelectableTreeNode>, fromNode?: Readonly<SelectableTreeNode>, keepSelection?: boolean): void {
+        // throw new Error("Method not implemented.");
+    }
+
+    unselectRange(toNode: Readonly<SelectableTreeNode>, fromNode?: Readonly<SelectableTreeNode>): void {
+        throw new Error("Method not implemented.");
+    }
+
+    protected pathToRoot(node: Readonly<TreeNode>): ReadonlyArray<Readonly<TreeNode>> {
+        const nodes: TreeNode[] = [];
+        let current: Readonly<TreeNode> | undefined = node;
+        while (CompositeTreeNode.is(current)) {
+            nodes.unshift(current);
+            current = TreeNode.equals(current, this.tree.root) ? undefined : current.parent;
+        }
+        return nodes;
     }
 
 }

@@ -10,7 +10,7 @@ import URI from '@theia/core/lib/common/uri';
 import { ILogger } from '@theia/core/lib/common/logger';
 import { Event, Emitter } from '@theia/core/lib/common/event';
 import { Tree, TreeNode } from '@theia/core/lib/browser/tree/tree';
-import { TreeNodeIteratorImpl } from '@theia/core/lib/browser/tree/tree-iterator';
+import { ForwardTreeNodeIterator } from '@theia/core/lib/browser/tree/tree-iterator';
 import { DisposableCollection } from '@theia/core/lib/common/disposable';
 import { PreferenceChangeEvent } from '@theia/core/lib/browser/preferences/preference-proxy';
 import { TreeDecorator, TreeDecoration } from '@theia/core/lib/browser/tree/tree-decorator';
@@ -78,7 +78,7 @@ export class GitDecorator implements TreeDecorator {
         };
         const markers = this.appendContainerChanges(tree, status.changes);
         processNode(tree.root);
-        const itr = new TreeNodeIteratorImpl(tree.root);
+        const itr = new ForwardTreeNodeIterator(tree.root);
         let node = itr.next();
         while (!node.done) {
             processNode(node.value);

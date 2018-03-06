@@ -13,7 +13,7 @@ import {
     SelectableTreeNode,
     TreeProps,
     ContextMenuRenderer,
-    TreeModelImpl,
+    TreeModel,
     ExpandableTreeNode
 } from "@theia/core/lib/browser";
 import { h } from "@phosphor/virtualdom/lib";
@@ -41,7 +41,7 @@ export class OutlineViewWidget extends TreeWidget {
 
     constructor(
         @inject(TreeProps) protected readonly treeProps: TreeProps,
-        @inject(TreeModelImpl) model: TreeModelImpl,
+        @inject(TreeModel) model: TreeModel,
         @inject(ContextMenuRenderer) protected readonly contextMenuRenderer: ContextMenuRenderer
     ) {
         super(treeProps, model, contextMenuRenderer);
@@ -88,7 +88,7 @@ export class OutlineViewWidget extends TreeWidget {
 
     protected onUpdateRequest(msg: Message): void {
         if (!this.model.selectedNodes && SelectableTreeNode.is(this.model.root)) {
-            this.model.selectNode(this.model.root);
+            this.model.setSelection([this.model.root]);
         }
         super.onUpdateRequest(msg);
     }

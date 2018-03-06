@@ -11,7 +11,7 @@ import URI from '@theia/core/lib/common/uri';
 import { notEmpty } from '@theia/core/lib/common/objects';
 import { Event, Emitter } from '@theia/core/lib/common/event';
 import { Tree, TreeNode } from '@theia/core/lib/browser/tree/tree';
-import { TreeNodeIteratorImpl } from '@theia/core/lib/browser/tree/tree-iterator';
+import { ForwardTreeNodeIterator } from '@theia/core/lib/browser/tree/tree-iterator';
 import { TreeDecorator, TreeDecoration } from '@theia/core/lib/browser/tree/tree-decorator';
 import { Marker } from '../../common/marker';
 import { ProblemManager } from './problem-manager';
@@ -52,7 +52,7 @@ export class ProblemDecorator implements TreeDecorator {
         };
         const markers = this.appendContainerMarkers(tree, this.collectMarkers(tree));
         processNode(tree.root);
-        const itr = new TreeNodeIteratorImpl(tree.root);
+        const itr = new ForwardTreeNodeIterator(tree.root);
         let node = itr.next();
         while (!node.done) {
             processNode(node.value);

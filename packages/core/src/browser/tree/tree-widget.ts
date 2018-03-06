@@ -484,7 +484,7 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
                     if (multi && node.selected) {
                         this.model.unselectNode(node);
                     } else {
-                        this.model.selectNode(node, { selectionType });
+                        // this.model.setSelection(node, { selectionType });
                     }
                 }
                 if (!multi && this.isExpandable(node)) {
@@ -492,7 +492,7 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
                 }
             } else {
                 if (SelectableTreeNode.is(node)) {
-                    this.model.selectNode(node);
+                    // this.model.setSelection(node);
                 }
                 if (this.isExpandable(node)) {
                     this.model.toggleNodeExpansion(node);
@@ -510,8 +510,8 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
     protected handleContextMenuEvent(node: TreeNode | undefined, event: MouseEvent): void {
         if (SelectableTreeNode.is(node)) {
             // Keep the selection for the context menu, if the widget support multi-selection and the right click happens on an already selected node.
-            const selectionType = !!this.props.multiSelect && node.selected ? StructuredSelection.SelectionType.MULTI_INDIVIDUAL : StructuredSelection.SelectionType.SINGLE;
-            this.model.selectNode(node, { selectionType });
+            // const selectionType = !!this.props.multiSelect && node.selected ? StructuredSelection.SelectionType.MULTI_INDIVIDUAL : StructuredSelection.SelectionType.SINGLE;
+            // this.model.setSelection(node, { selectionType });
             const contextMenuPath = this.props.contextMenuPath;
             if (contextMenuPath) {
                 this.onRender.push(Disposable.create(() =>

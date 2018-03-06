@@ -55,7 +55,7 @@ export abstract class AbstractTreeNodeIterator implements TreeNodeIterator {
     }
 }
 
-export class TreeNodeIteratorImpl extends AbstractTreeNodeIterator {
+export class ForwardTreeNodeIterator extends AbstractTreeNodeIterator {
 
     protected doNext(node: TreeNode): TreeNode | undefined {
         return this.findFirstChild(node) || this.findNextSibling(node);

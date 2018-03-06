@@ -7,7 +7,7 @@
 
 import { injectable, inject } from "inversify";
 import { MarkerTree, MarkerNode } from './marker-tree';
-import { TreeModel, TreeServices, OpenerService, open, ITreeNode, OpenerOptions } from "@theia/core/lib/browser";
+import { TreeModelImpl, TreeServices, OpenerService, open, TreeNode, OpenerOptions } from "@theia/core/lib/browser";
 
 @injectable()
 export class MarkerTreeServices extends TreeServices {
@@ -15,7 +15,7 @@ export class MarkerTreeServices extends TreeServices {
 }
 
 @injectable()
-export class MarkerTreeModel<T extends object> extends TreeModel {
+export class MarkerTreeModel<T extends object> extends TreeModelImpl {
 
     protected readonly openerService: OpenerService;
 
@@ -26,7 +26,7 @@ export class MarkerTreeModel<T extends object> extends TreeModel {
         super(tree, services);
     }
 
-    protected doOpenNode(node: ITreeNode): void {
+    protected doOpenNode(node: TreeNode): void {
         if (MarkerNode.is(node)) {
             open(this.openerService, node.uri, this.getOpenerOptionsByMarker(node));
         } else {

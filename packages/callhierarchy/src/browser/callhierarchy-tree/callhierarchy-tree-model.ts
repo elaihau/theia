@@ -6,13 +6,13 @@
  */
 
 import { injectable, inject } from "inversify";
-import { TreeModel, TreeServices, ITreeNode } from "@theia/core/lib/browser";
+import { TreeModelImpl, TreeServices, TreeNode } from "@theia/core/lib/browser";
 import { CallHierarchyTree, DefinitionNode } from "./callhierarchy-tree";
 import { CallHierarchyServiceProvider } from "../callhierarchy-service";
 import { Location } from 'vscode-languageserver-types';
 
 @injectable()
-export class CallHierarchyTreeModel extends TreeModel {
+export class CallHierarchyTreeModel extends TreeModelImpl {
 
     constructor(
         @inject(CallHierarchyTree) protected readonly tree: CallHierarchyTree,
@@ -42,7 +42,7 @@ export class CallHierarchyTreeModel extends TreeModel {
         }
     }
 
-    protected doOpenNode(node: ITreeNode): void {
+    protected doOpenNode(node: TreeNode): void {
         // do nothing (in particular do not expand the node)
     }
 }

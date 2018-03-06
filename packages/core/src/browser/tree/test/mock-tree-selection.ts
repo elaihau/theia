@@ -5,12 +5,12 @@
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import { ITreeNode } from '../tree';
-import { ISelectableTreeNode, TreeSelectionService } from '../tree-selection';
+import { TreeNode } from '../tree';
+import { SelectableTreeNode, TreeSelectionServiceImpl } from '../tree-selection';
 
-export class MockTreeSelectionService extends TreeSelectionService {
+export class MockTreeSelectionService extends TreeSelectionServiceImpl {
 
-    constructor(initialSelection?: ISelectableTreeNode[]) {
+    constructor(initialSelection?: SelectableTreeNode[]) {
         super();
         if (initialSelection) {
             this._selectedNodes.push(...initialSelection);
@@ -18,7 +18,7 @@ export class MockTreeSelectionService extends TreeSelectionService {
         }
     }
 
-    validateNode(node: ITreeNode | undefined): ITreeNode | undefined {
+    validateNode(node: TreeNode | undefined): TreeNode | undefined {
         return node;
     }
 

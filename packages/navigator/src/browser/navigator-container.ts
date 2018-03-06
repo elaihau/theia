@@ -6,7 +6,7 @@
  */
 
 import { Container, interfaces } from 'inversify';
-import { ITree, ITreeModel, TreeProps, defaultTreeProps, TreeDecoratorService } from "@theia/core/lib/browser";
+import { Tree, TreeModel, TreeProps, defaultTreeProps, TreeDecoratorService } from "@theia/core/lib/browser";
 import { createFileTreeContainer, FileTree, FileTreeModel, FileTreeWidget, FileTreeServices } from '@theia/filesystem/lib/browser';
 import { bindContributionProvider } from '@theia/core/lib/common/contribution-provider';
 import { FileNavigatorTree } from "./navigator-tree";
@@ -26,14 +26,14 @@ export function createFileNavigatorContainer(parent: interfaces.Container): Cont
 
     child.unbind(FileTree);
     child.bind(FileNavigatorTree).toSelf();
-    child.rebind(ITree).toDynamicValue(ctx => ctx.container.get(FileNavigatorTree));
+    child.rebind(Tree).toDynamicValue(ctx => ctx.container.get(FileNavigatorTree));
 
     child.unbind(FileTreeServices);
     child.bind(FileNavigatorServices).toSelf();
 
     child.unbind(FileTreeModel);
     child.bind(FileNavigatorModel).toSelf();
-    child.rebind(ITreeModel).toDynamicValue(ctx => ctx.container.get(FileNavigatorModel));
+    child.rebind(TreeModel).toDynamicValue(ctx => ctx.container.get(FileNavigatorModel));
 
     child.unbind(FileTreeWidget);
     child.bind(FileNavigatorWidget).toSelf();

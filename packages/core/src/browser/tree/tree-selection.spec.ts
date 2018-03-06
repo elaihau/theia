@@ -11,13 +11,13 @@ const disableJSDOM = enableJSDOM();
 
 import { expect } from 'chai';
 import { Container } from 'inversify';
-import { TreeModel } from './tree-model';
+import { TreeModelImpl } from './tree-model';
 import { MOCK_ROOT } from './test/mock-tree-model';
 import { createTreeContainer } from './tree-container';
-import { IExpandableTreeNode } from './tree-expansion';
+import { ExpandableTreeNode } from './tree-expansion';
 import { StructuredSelection } from '../../common/selection';
 import { MockTreeSelectionService } from './test/mock-tree-selection';
-import { ISelectableTreeNode, ITreeSelectionService } from './tree-selection';
+import { SelectableTreeNode, TreeSelectionService } from './tree-selection';
 
 disableJSDOM();
 
@@ -118,9 +118,9 @@ describe('tree-selection', () => {
     describe('select-node [single, multi-range]', () => {
 
         const container = createTreeContainer(new Container({ defaultScope: 'Singleton' }));
-        const model = container.get(TreeModel);
-        const selectionService: ITreeSelectionService = container.get(ITreeSelectionService);
-        const findNode = (id: string) => model.getNode(id) as (ISelectableTreeNode & IExpandableTreeNode);
+        const model = container.get(TreeModelImpl);
+        const selectionService: TreeSelectionService = container.get(TreeSelectionService);
+        const findNode = (id: string) => model.getNode(id) as (SelectableTreeNode & ExpandableTreeNode);
 
         before(() => {
             model.root = MOCK_ROOT;
@@ -136,7 +136,7 @@ describe('tree-selection', () => {
 
 });
 
-function createTreeNode(id: string, selected: boolean): ISelectableTreeNode {
+function createTreeNode(id: string, selected: boolean): SelectableTreeNode {
     return {
         id,
         name: id,

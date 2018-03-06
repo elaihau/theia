@@ -10,7 +10,7 @@ import { ProblemManager } from './problem-manager';
 import { ProblemMarker } from '../../common/problem-marker';
 import { ProblemTreeModel } from './problem-tree-model';
 import { MarkerInfoNode, MarkerNode } from '../marker-tree';
-import { TreeWidget, TreeProps, ContextMenuRenderer, ITreeNode, NodeProps, ITreeModel, ISelectableTreeNode } from "@theia/core/lib/browser";
+import { TreeWidget, TreeProps, ContextMenuRenderer, TreeNode, NodeProps, TreeModel, SelectableTreeNode } from "@theia/core/lib/browser";
 import { h } from "@phosphor/virtualdom/lib";
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
 import { Message } from '@phosphor/messaging';
@@ -37,7 +37,7 @@ export class ProblemWidget extends TreeWidget {
         this.addClipboardListener(this.node, 'copy', e => this.handleCopy(e));
     }
 
-    protected deflateForStorage(node: ITreeNode): object {
+    protected deflateForStorage(node: TreeNode): object {
         const result = super.deflateForStorage(node) as any;
         if (UriSelection.is(node) && node.uri) {
             result.uri = node.uri.toString();
@@ -45,7 +45,7 @@ export class ProblemWidget extends TreeWidget {
         return result;
     }
 
-    protected inflateFromStorage(node: any, parent?: ITreeNode): ITreeNode {
+    protected inflateFromStorage(node: any, parent?: TreeNode): TreeNode {
         if (node.uri) {
             node.uri = new URI(node.uri);
         }
@@ -64,17 +64,17 @@ export class ProblemWidget extends TreeWidget {
     }
 
     protected onUpdateRequest(msg: Message) {
-        if (!this.model.selectedNodes && ISelectableTreeNode.is(this.model.root)) {
+        if (!this.model.selectedNodes && SelectableTreeNode.is(this.model.root)) {
             this.model.selectNode(this.model.root);
         }
         super.onUpdateRequest(msg);
     }
 
-    protected renderTree(model: ITreeModel): h.Child {
+    protected renderTree(model: TreeModel): h.Child {
         return super.renderTree(model) || h.div({ className: 'noMarkers' }, 'No problems have been detected in the workspace so far.');
     }
 
-    protected renderCaption(node: ITreeNode, props: NodeProps): h.Child {
+    protected renderCaption(node: TreeNode, props: NodeProps): h.Child {
         if (MarkerInfoNode.is(node)) {
             return this.decorateMarkerFileNode(node);
         } else if (MarkerNode.is(node)) {

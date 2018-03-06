@@ -5,8 +5,9 @@
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 
-import { ITreeNode, ICompositeTreeNode } from '../tree';
-import { ISelectableTreeNode, IExpandableTreeNode } from '@theia/core/lib/browser';
+import { TreeNode, CompositeTreeNode } from '../tree';
+import { SelectableTreeNode } from '../tree-selection';
+import { ExpandableTreeNode } from '../tree-expansion';
 
 export interface Node {
     readonly id: string;
@@ -14,12 +15,12 @@ export interface Node {
 }
 
 export namespace Node {
-    export function toTreeNode(root: Node, parent?: ICompositeTreeNode): ITreeNode {
+    export function toTreeNode(root: Node, parent?: CompositeTreeNode): TreeNode {
         const { id } = root;
         const name = id;
         const selected = false;
         const expanded = false;
-        const node: ICompositeTreeNode & ISelectableTreeNode & IExpandableTreeNode = {
+        const node: CompositeTreeNode & SelectableTreeNode & ExpandableTreeNode = {
             id,
             name,
             selected,
@@ -36,7 +37,7 @@ export namespace Node {
                 selected,
                 expanded,
                 children
-            } as ICompositeTreeNode & ISelectableTreeNode & IExpandableTreeNode;
+            } as CompositeTreeNode & SelectableTreeNode & ExpandableTreeNode;
         }
     }
 }

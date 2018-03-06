@@ -9,7 +9,7 @@ import { injectable, inject } from "inversify";
 import { Message } from "@phosphor/messaging";
 import URI from "@theia/core/lib/common/uri";
 import { CommandService } from '@theia/core/lib/common/command';
-import { ContextMenuRenderer, TreeProps, ITreeModel, ITreeNode } from '@theia/core/lib/browser';
+import { ContextMenuRenderer, TreeProps, TreeModel, TreeNode } from '@theia/core/lib/browser';
 import { FileTreeWidget, DirNode } from "@theia/filesystem/lib/browser";
 import { FileNavigatorModel } from "./navigator-model";
 import { WorkspaceCommands } from '@theia/workspace/lib/browser/workspace-frontend-contribution';
@@ -58,7 +58,7 @@ export class FileNavigatorWidget extends FileTreeWidget {
         });
     }
 
-    protected deflateForStorage(node: ITreeNode): object {
+    protected deflateForStorage(node: TreeNode): object {
         // tslint:disable-next-line:no-any
         const copy = { ...node } as any;
         if (copy.uri) {
@@ -68,14 +68,14 @@ export class FileNavigatorWidget extends FileTreeWidget {
     }
 
     // tslint:disable-next-line:no-any
-    protected inflateFromStorage(node: any, parent?: ITreeNode): ITreeNode {
+    protected inflateFromStorage(node: any, parent?: TreeNode): TreeNode {
         if (node.uri) {
             node.uri = new URI(node.uri);
         }
         return super.inflateFromStorage(node, parent);
     }
 
-    protected renderTree(model: ITreeModel): h.Child {
+    protected renderTree(model: TreeModel): h.Child {
         return super.renderTree(model) || this.renderOpenWorkspaceDiv();
     }
 

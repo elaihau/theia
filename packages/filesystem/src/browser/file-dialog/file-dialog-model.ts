@@ -7,7 +7,7 @@
 
 import { injectable, inject } from "inversify";
 import { Emitter, Event } from "@theia/core/lib/common";
-import { ITreeNode } from "@theia/core/lib/browser";
+import { TreeNode } from "@theia/core/lib/browser";
 import { DirNode, FileNode, FileTreeModel, FileTree, FileTreeServices } from '../file-tree';
 
 @injectable()
@@ -27,7 +27,7 @@ export class FileDialogModel extends FileTreeModel {
         return this.onDidOpenFileEmitter.event;
     }
 
-    protected doOpenNode(node: ITreeNode): void {
+    protected doOpenNode(node: TreeNode): void {
         if (FileNode.is(node)) {
             this.onDidOpenFileEmitter.fire(undefined);
         } else if (DirNode.is(node)) {

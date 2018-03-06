@@ -7,7 +7,7 @@
 
 import { injectable, inject } from "inversify";
 import URI from '@theia/core/lib/common/uri';
-import { ICompositeTreeNode, TreeModel, TreeServices, ITreeNode, ConfirmDialog } from "@theia/core/lib/browser";
+import { CompositeTreeNode, TreeModelImpl, TreeServices, TreeNode, ConfirmDialog } from "@theia/core/lib/browser";
 import { FileSystem, } from "../../common";
 import { FileSystemWatcher, FileChangeType, FileChange } from '../filesystem-watcher';
 import { FileStatNode, DirNode, FileTree, FileNode } from "./file-tree";
@@ -22,7 +22,7 @@ export class FileTreeServices extends TreeServices {
 }
 
 @injectable()
-export class FileTreeModel extends TreeModel implements LocationService {
+export class FileTreeModel extends TreeModelImpl implements LocationService {
 
     protected readonly fileSystem: FileSystem;
     protected readonly watcher: FileSystemWatcher;
@@ -82,15 +82,15 @@ export class FileTreeModel extends TreeModel implements LocationService {
         return false;
     }
 
-    protected getAffectedNodes(changes: FileChange[]): ICompositeTreeNode[] {
-        const nodes = new Map<string, ICompositeTreeNode>();
+    protected getAffectedNodes(changes: FileChange[]): CompositeTreeNode[] {
+        const nodes = new Map<string, CompositeTreeNode>();
         for (const change of changes) {
             this.collectAffectedNodes(change, node => nodes.set(node.id, node));
         }
         return [...nodes.values()];
     }
 
-    protected collectAffectedNodes(change: FileChange, accept: (node: ICompositeTreeNode) => void): void {
+    protected collectAffectedNodes(change: FileChange, accept: (node: CompositeTreeNode) => void): void {
         if (this.isFileContentChanged(change)) {
             return;
         }
@@ -119,7 +119,7 @@ export class FileTreeModel extends TreeModel implements LocationService {
     /**
      * Move the given source file or directory to the given target directory.
      */
-    async move(source: ITreeNode, target: ITreeNode) {
+    async move(source: TreeNode, target: TreeNode) {
         if (DirNode.is(target) && FileStatNode.is(source)) {
             const sourceUri = source.uri.toString();
             if (target.uri.toString() === sourceUri) { /*  Folder on itself */

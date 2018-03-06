@@ -6,7 +6,7 @@
  */
 
 import { injectable, inject } from 'inversify';
-import { ITree, ITreeNode } from './tree';
+import { Tree, TreeNode } from './tree';
 import { StructuredSelection } from '../../common/selection';
 import { Event, Emitter, Disposable, SelectionProvider } from '../../common';
 
@@ -14,14 +14,14 @@ import { Event, Emitter, Disposable, SelectionProvider } from '../../common';
  * Representation of a tree selection. The selected nodes can be accessed in inverse-chronological order.
  * The first item is the most recently selected node then come the others (if any).
  */
-export interface TreeSelection extends StructuredSelection<ISelectableTreeNode> {
+export interface TreeSelection extends StructuredSelection<SelectableTreeNode> {
 }
 
 /**
  * The tree selection service.
  */
-export const ITreeSelectionService = Symbol("ITreeSelectionService");
-export interface ITreeSelectionService extends Disposable, SelectionProvider<TreeSelection> {
+export const TreeSelectionService = Symbol("TreeSelectionService");
+export interface TreeSelectionService extends Disposable, SelectionProvider<TreeSelection> {
 
     /**
      * The tree selection, representing the selected nodes from the tree. If nothing is selected, the
@@ -37,16 +37,16 @@ export interface ITreeSelectionService extends Disposable, SelectionProvider<Tre
     /**
      * Selects the given `node` in the tree. Has no effect if the `node` is invalid or already selected.
      */
-    selectNode(node: ISelectableTreeNode, props?: ITreeSelectionService.SelectionProps): void;
+    selectNode(node: SelectableTreeNode, props?: TreeSelectionService.SelectionProps): void;
 
     /**
      * Removes the selection from the given `node`. If the `node` is undefined, removes all the selections from the tree.
      * Has no effect, if the `node` is invalid or not selected.
      */
-    unselectNode(node: ISelectableTreeNode | undefined): void;
+    unselectNode(node: SelectableTreeNode | undefined): void;
 }
 
-export namespace ITreeSelectionService {
+export namespace TreeSelectionService {
 
     /**
      * Selection options.
@@ -64,7 +64,7 @@ export namespace ITreeSelectionService {
 /**
  * The selectable tree node.
  */
-export interface ISelectableTreeNode extends ITreeNode {
+export interface SelectableTreeNode extends TreeNode {
 
     /**
      * Test whether this node is selected.
@@ -72,21 +72,21 @@ export interface ISelectableTreeNode extends ITreeNode {
     selected: boolean;
 }
 
-export namespace ISelectableTreeNode {
+export namespace SelectableTreeNode {
 
-    export function is(node: ITreeNode | undefined): node is ISelectableTreeNode {
+    export function is(node: TreeNode | undefined): node is SelectableTreeNode {
         return !!node && 'selected' in node;
     }
 
-    export function isSelected(node: ITreeNode | undefined): node is ISelectableTreeNode {
+    export function isSelected(node: TreeNode | undefined): node is SelectableTreeNode {
         return is(node) && node.selected;
     }
 
-    export function isVisible(node: ITreeNode | undefined): node is ISelectableTreeNode {
-        return is(node) && ITreeNode.isVisible(node);
+    export function isVisible(node: TreeNode | undefined): node is SelectableTreeNode {
+        return is(node) && TreeNode.isVisible(node);
     }
 
-    export function getVisibleParent(node: ITreeNode | undefined): ISelectableTreeNode | undefined {
+    export function getVisibleParent(node: TreeNode | undefined): SelectableTreeNode | undefined {
         if (node) {
             if (isVisible(node.parent)) {
                 return node.parent;
@@ -97,11 +97,11 @@ export namespace ISelectableTreeNode {
 }
 
 @injectable()
-export class TreeSelectionService implements ITreeSelectionService {
+export class TreeSelectionServiceImpl implements TreeSelectionService {
 
-    @inject(ITree)
-    protected readonly tree: ITree;
-    protected readonly _selectedNodes: ISelectableTreeNode[] = [];
+    @inject(Tree)
+    protected readonly tree: Tree;
+    protected readonly _selectedNodes: SelectableTreeNode[] = [];
     protected readonly onSelectionChangedEmitter = new Emitter<TreeSelection>();
 
     dispose() {
@@ -120,14 +120,14 @@ export class TreeSelectionService implements ITreeSelectionService {
         this.onSelectionChangedEmitter.fire(this._selectedNodes.slice());
     }
 
-    selectNode(raw: ISelectableTreeNode, props?: ITreeSelectionService.SelectionProps): void {
+    selectNode(raw: SelectableTreeNode, props?: TreeSelectionService.SelectionProps): void {
         const node = this.validateNode(raw);
-        if (ISelectableTreeNode.is(node)) {
+        if (SelectableTreeNode.is(node)) {
             this.doSelectNode(node, props);
         }
     }
 
-    protected doSelectNode(node: ISelectableTreeNode, props?: ITreeSelectionService.SelectionProps): void {
+    protected doSelectNode(node: SelectableTreeNode, props?: TreeSelectionService.SelectionProps): void {
         // Shortcut. Nothing is selected yet. Select the node and we are done.
         if (this._selectedNodes.length === 0) {
             node.selected = true;
@@ -169,18 +169,18 @@ export class TreeSelectionService implements ITreeSelectionService {
         }
     }
 
-    unselectNode(raw: ISelectableTreeNode | undefined): void {
+    unselectNode(raw: SelectableTreeNode | undefined): void {
         if (raw === undefined) {
             this.doUnselectNode(undefined);
         } else {
             const node = this.tree.validateNode(raw);
-            if (ISelectableTreeNode.is(node)) {
+            if (SelectableTreeNode.is(node)) {
                 this.doUnselectNode(node);
             }
         }
     }
 
-    protected doUnselectNode(node: ISelectableTreeNode | undefined): void {
+    protected doUnselectNode(node: SelectableTreeNode | undefined): void {
         if (node === undefined) {
             this._selectedNodes.forEach(n => n.selected = false);
             this._selectedNodes.length = 0;
@@ -195,7 +195,7 @@ export class TreeSelectionService implements ITreeSelectionService {
         }
     }
 
-    protected validateNode(node: ITreeNode | undefined): ITreeNode | undefined {
+    protected validateNode(node: TreeNode | undefined): TreeNode | undefined {
         return this.tree.validateNode(node);
     }
 

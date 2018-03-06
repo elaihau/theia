@@ -203,7 +203,7 @@ export class MonacoEditor implements TextEditor, IEditorReference {
 
     protected increaseZIndex(element: HTMLElement, z: string, toDisposeOnBlur: DisposableCollection) {
         const parent = element.parentElement;
-        if (parent && !element.classList.contains('p-DockPanel')) {
+        if (parent) {
             const oldIndex = element.style.zIndex;
             toDisposeOnBlur.push(Disposable.create(() =>
                 element.style.zIndex = oldIndex

@@ -14,6 +14,7 @@ import { Workspace, Location, Range } from "@theia/languages/lib/common";
 import { PreviewHandler, PreviewHandlerProvider } from './preview-handler';
 import { throttle } from 'throttle-debounce';
 import { ThemeService } from '@theia/core/lib/browser/theming';
+import { EditorPreferences } from "@theia/editor/lib/browser";
 
 export const PREVIEW_WIDGET_CLASS = 'theia-preview-widget';
 
@@ -35,6 +36,8 @@ export class PreviewWidget extends BaseWidget {
     protected firstUpdate: (() => void) | undefined = undefined;
     protected readonly onDidScrollEmitter = new Emitter<number>();
     protected readonly onDidDoubleClickEmitter = new Emitter<Location>();
+
+    @inject(EditorPreferences) protected readonly editorPreferences: EditorPreferences;
 
     constructor(
         @inject(PreviewWidgetOptions) protected readonly options: PreviewWidgetOptions,
@@ -146,6 +149,10 @@ export class PreviewWidget extends BaseWidget {
         const contentElement = await this.render(content, uri);
         this.node.innerHTML = '';
         if (contentElement) {
+            const scrollBeyondLastLine = this.editorPreferences['editor.scrollBeyondLastLine'];
+            if (scrollBeyondLastLine) {
+                contentElement.classList.add('scrollBeyondLastLine');
+            }
             this.node.appendChild(contentElement);
             if (this.firstUpdate) {
                 this.firstUpdate();

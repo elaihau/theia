@@ -169,8 +169,8 @@ export class TreeModel implements ITreeModel, SelectionProvider<TreeSelection> {
         return this.selection.onSelectionChanged;
     }
 
-    selectNode(node: ISelectableTreeNode, options?: ITreeSelectionService.Options): void {
-        this.selection.selectNode(node, options);
+    selectNode(node: ISelectableTreeNode, props?: ITreeSelectionService.SelectionProps): void {
+        this.selection.selectNode(node, props);
     }
 
     unselectNode(node: ISelectableTreeNode | undefined): void {

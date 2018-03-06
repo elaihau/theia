@@ -21,6 +21,7 @@ import { ISelectableTreeNode } from "./tree-selection";
 import { TreeDecoration, TreeDecoratorService } from "./tree-decorator";
 import { notEmpty } from '../../common/objects';
 import { isOSX } from '../../common/os';
+import { StructuredSelection } from '../../common/selection';
 
 export const TREE_CLASS = 'theia-Tree';
 export const TREE_NODE_CLASS = 'theia-TreeNode';
@@ -477,12 +478,13 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
     protected handleClickEvent(node: ITreeNode | undefined, event: MouseEvent): void {
         if (node) {
             if (!!this.props.multiSelect) {
-                const multi = this.isMulti(event);
+                const selectionType = this.getSelectionType(event);
+                const multi = StructuredSelection.SelectionType.isMulti(selectionType);
                 if (ISelectableTreeNode.is(node)) {
                     if (multi && node.selected) {
                         this.model.unselectNode(node);
                     } else {
-                        this.model.selectNode(node, { multi });
+                        this.model.selectNode(node, { selectionType });
                     }
                 }
                 if (!multi && this.isExpandable(node)) {
@@ -508,8 +510,8 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
     protected handleContextMenuEvent(node: ITreeNode | undefined, event: MouseEvent): void {
         if (ISelectableTreeNode.is(node)) {
             // Keep the selection for the context menu, if the widget support multi-selection and the right click happens on an already selected node.
-            const multi = !!this.props.multiSelect && node.selected;
-            this.model.selectNode(node, { multi });
+            const selectionType = !!this.props.multiSelect && node.selected ? StructuredSelection.SelectionType.MULTI_INDIVIDUAL : StructuredSelection.SelectionType.SINGLE;
+            this.model.selectNode(node, { selectionType });
             const contextMenuPath = this.props.contextMenuPath;
             if (contextMenuPath) {
                 this.onRender.push(Disposable.create(() =>
@@ -524,8 +526,15 @@ export class TreeWidget extends VirtualWidget implements StatefulWidget {
         event.preventDefault();
     }
 
-    protected isMulti(event: MouseEvent): boolean {
-        return isOSX ? event.metaKey : event.ctrlKey;
+    protected getSelectionType(event: MouseEvent): StructuredSelection.SelectionType {
+        const { shiftKey, metaKey, ctrlKey } = event;
+        if ((isOSX && metaKey) || ctrlKey) {
+            return StructuredSelection.SelectionType.MULTI_INDIVIDUAL;
+        }
+        if (shiftKey) {
+            return StructuredSelection.SelectionType.MULTI_RANGE;
+        }
+        return StructuredSelection.SelectionType.SINGLE;
     }
 
     protected deflateForStorage(node: ITreeNode): object {

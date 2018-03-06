@@ -17,6 +17,7 @@ import { UriSelection, StructuredSelection } from '@theia/core/lib/common/select
 import { SingleTextInputDialog, ConfirmDialog } from '@theia/core/lib/browser/dialogs';
 import { OpenerService, OpenHandler, open, FrontendApplication } from '@theia/core/lib/browser';
 import { WorkspaceService } from './workspace-service';
+import { NAVIGATOR_CONTEXT_MENU } from '@theia/navigator/lib/browser/navigator-menu';
 
 export namespace WorkspaceCommands {
     export const NEW_FILE: Command = {
@@ -44,6 +45,10 @@ export namespace WorkspaceCommands {
         id: 'file.delete',
         label: 'Delete'
     };
+    export const FILE_COMPARE: Command = {
+        id: 'file.compare',
+        label: 'Compare with Each Other'
+    };
 }
 
 @injectable()
@@ -55,6 +60,9 @@ export class FileMenuContribution implements MenuContribution {
         });
         registry.registerMenuAction(CommonMenus.FILE_NEW, {
             commandId: WorkspaceCommands.NEW_FOLDER.id
+        });
+        registry.registerMenuAction([...NAVIGATOR_CONTEXT_MENU, '5_diff'], {
+            commandId: WorkspaceCommands.FILE_COMPARE.id
         });
     }
 
@@ -132,33 +140,39 @@ export class WorkspaceCommandContribution implements CommandContribution {
         }));
         registry.registerCommand(WorkspaceCommands.FILE_DELETE, this.newMultiUriAwareCommandHandler({
             execute: async uris => {
-                if (uris.length > 0) {
-                    const single = uris.length === 0;
-                    const msg = `Do yo really want to delete ${single ? `${uris[0].path.base}?` : `the following files?`}`;
-                    const dialog = new ConfirmDialog({
-                        title: `Delete File${single ? '' : 's'}`,
-                        msg,
-                        details: {
-                            items: single ? [] : uris.map(u => u.path.base),
-                            style: 'ul'
-                        }
-                    });
-                    if (await dialog.open()) {
-                        // Make sure we delete the longest paths first, they might be nested. Longer paths come first.
-                        uris.sort((left, right) => right.toString().length - left.toString().length);
-                        await Promise.all(uris.map(uri => uri.toString()).map(uri => this.fileSystem.delete(uri)));
+                const single = uris.length === 0;
+                const msg = `Do yo really want to delete ${single ? `${uris[0].path.base}?` : `the following files?`}`;
+                const dialog = new ConfirmDialog({
+                    title: `Delete File${single ? '' : 's'}`,
+                    msg,
+                    details: {
+                        items: single ? [] : uris.map(u => u.path.base),
+                        style: 'ul'
                     }
+                });
+                if (await dialog.open()) {
+                    // Make sure we delete the longest paths first, they might be nested. Longer paths come first.
+                    uris.sort((left, right) => right.toString().length - left.toString().length);
+                    await Promise.all(uris.map(uri => uri.toString()).map(uri => this.fileSystem.delete(uri)));
                 }
             }
         }));
+        registry.registerCommand(WorkspaceCommands.FILE_COMPARE, this.newMultiUriAwareCommandHandler({
+            execute: async uris => {
+                const leftUri = uris[0];
+                const rightUri = uris[1];
+                console.log(leftUri.toString(), rightUri.toString());
+            }
+            // Ideally, we would have to check whether both the URIs represent an individual file, but we cannot make synchronous validation here.
+        }, uris => uris.length === 2));
     }
 
     protected newUriAwareCommandHandler(handler: UriCommandHandler<URI>): UriAwareCommandHandler<URI> {
         return new UriAwareCommandHandler(this.selectionService, handler);
     }
 
-    protected newMultiUriAwareCommandHandler(handler: UriCommandHandler<URI[]>): UriAwareCommandHandler<URI[]> {
-        return new UriAwareCommandHandler(this.selectionService, handler, true);
+    protected newMultiUriAwareCommandHandler(handler: UriCommandHandler<URI[]>, isValid: (uris: URI[]) => boolean = uris => uris.length > 0): UriAwareCommandHandler<URI[]> {
+        return new UriAwareCommandHandler(this.selectionService, handler, { multi: true, isValid });
     }
 
     protected newWorkspaceRootUriAwareCommandHandler(handler: UriCommandHandler<URI>): WorkspaceRootUriAwareCommandHandler {
@@ -166,9 +180,10 @@ export class WorkspaceCommandContribution implements CommandContribution {
     }
 
     /**
-     * returns an error message or an empty string if the file name is valid
-     * @param name the simple file name to validate
-     * @param parent the parent directory's file stat
+     * Returns an error message if the file name is invalid. Otherwise, an empty string.
+     *
+     * @param name the simple file name of the file to validate.
+     * @param parent the parent directory's file stat.
      */
     protected validateFileName(name: string, parent: FileStat): string {
         if (!validFilename(name)) {
@@ -222,11 +237,38 @@ export interface UriCommandHandler<T extends URI | URI[]> {
 
 }
 
+/**
+ * Handler for a single URI-based selection.
+ */
 export interface SingleUriCommandHandler extends UriCommandHandler<URI> {
 
 }
 
+/**
+ * Handler for multiple URIs.
+ */
 export interface MultiUriCommandHandler extends UriCommandHandler<URI[]> {
+
+}
+
+export namespace UriAwareCommandHandler {
+
+    /**
+     * Further options for the URI aware command handler instantiation.
+     */
+    export interface Options {
+
+        /**
+         * `true` if the handler supports multiple selection. Otherwise, `false`. Defaults to `false`.
+         */
+        readonly multi?: boolean,
+
+        /**
+         * Additional validation callback on the URIs.
+         */
+        readonly isValid?: (uris: URI[]) => boolean;
+
+    }
 
 }
 
@@ -235,25 +277,28 @@ export class UriAwareCommandHandler<T extends URI | URI[]> implements CommandHan
     constructor(
         protected readonly selectionService: SelectionService,
         protected readonly handler: UriCommandHandler<T>,
-        protected readonly multi: boolean = false
+        protected readonly options?: UriAwareCommandHandler.Options
     ) { }
 
     // tslint:disable-next-line:no-any
     protected getUri(...args: any[]): T | undefined {
         if (args && args[0] instanceof URI) {
-            return this.multi ? [args[0]] : args[0];
+            return this.isMulti() ? [args[0]] : args[0];
         }
         const { selection } = this.selectionService;
         if (UriSelection.is(selection)) {
-            return (this.multi ? [selection.uri] : selection.uri) as T;
+            return (this.isMulti() ? [selection.uri] : selection.uri) as T;
         }
         if (StructuredSelection.is(selection)) {
-            if (this.multi) {
+            if (this.isMulti()) {
                 const uris: URI[] = [];
                 for (const item of selection) {
                     if (UriSelection.is(item)) {
                         uris.push(item.uri);
                     }
+                }
+                if (this.options && this.options.isValid) {
+                    return (this.options.isValid(uris) ? uris : undefined) as T;
                 }
                 return uris as T;
             } else if (StructuredSelection.isSingle(selection)) {
@@ -277,7 +322,7 @@ export class UriAwareCommandHandler<T extends URI | URI[]> implements CommandHan
         const uri = this.getUri(...args);
         if (uri) {
             if (this.handler.isVisible) {
-                if (this.multi && Array.isArray(uri)) {
+                if (this.isMulti() && Array.isArray(uri)) {
                     return uri.every(u => this.handler.isVisible!(u, ...args));
                 }
                 return this.handler.isVisible(uri as URI, ...args);
@@ -292,7 +337,7 @@ export class UriAwareCommandHandler<T extends URI | URI[]> implements CommandHan
         const uri = this.getUri(...args);
         if (uri) {
             if (this.handler.isEnabled) {
-                if (this.multi && Array.isArray(uri)) {
+                if (this.isMulti() && Array.isArray(uri)) {
                     return uri.every(u => this.handler.isEnabled!(u, ...args));
                 }
                 return this.handler.isEnabled(uri as URI, ...args);
@@ -300,6 +345,10 @@ export class UriAwareCommandHandler<T extends URI | URI[]> implements CommandHan
             return true;
         }
         return false;
+    }
+
+    protected isMulti() {
+        return this.options && !!this.options.multi;
     }
 
 }

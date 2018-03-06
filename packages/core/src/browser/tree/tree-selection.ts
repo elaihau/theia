@@ -15,7 +15,6 @@ import { Event, Emitter, Disposable, SelectionProvider } from '../../common';
  * The first item is the most recently selected node then come the others (if any).
  */
 export interface TreeSelection extends StructuredSelection<ISelectableTreeNode> {
-    [Symbol.iterator](): Iterator<Readonly<ISelectableTreeNode>>;
 }
 
 /**
@@ -38,10 +37,10 @@ export interface ITreeSelectionService extends Disposable, SelectionProvider<Tre
     /**
      * Selects the given `node` in the tree. Has no effect if the `node` is invalid or already selected.
      */
-    selectNode(node: ISelectableTreeNode, options?: ITreeSelectionService.Options): void;
+    selectNode(node: ISelectableTreeNode, props?: ITreeSelectionService.SelectionProps): void;
 
     /**
-     * Removes the selection from the give `node`. If the `node` is undefined, removes all the selections from the tree.
+     * Removes the selection from the given `node`. If the `node` is undefined, removes all the selections from the tree.
      * Has no effect, if the `node` is invalid or not selected.
      */
     unselectNode(node: ISelectableTreeNode | undefined): void;
@@ -52,12 +51,12 @@ export namespace ITreeSelectionService {
     /**
      * Selection options.
      */
-    export interface Options {
+    export interface SelectionProps {
 
         /**
-         * `true` if multi selection is supported. Otherwise, `false`. Defaults to `false`.
+         * The selection type. If not given, defaults to `SINGLE` selection type.
          */
-        readonly multi?: boolean;
+        readonly selectionType?: StructuredSelection.SelectionType;
     }
 
 }
@@ -121,14 +120,14 @@ export class TreeSelectionService implements ITreeSelectionService {
         this.onSelectionChangedEmitter.fire(this._selectedNodes.slice());
     }
 
-    selectNode(raw: ISelectableTreeNode, options?: ITreeSelectionService.Options): void {
+    selectNode(raw: ISelectableTreeNode, props?: ITreeSelectionService.SelectionProps): void {
         const node = this.validateNode(raw);
         if (ISelectableTreeNode.is(node)) {
-            this.doSelectNode(node, options);
+            this.doSelectNode(node, props);
         }
     }
 
-    protected doSelectNode(node: ISelectableTreeNode, options?: ITreeSelectionService.Options): void {
+    protected doSelectNode(node: ISelectableTreeNode, props?: ITreeSelectionService.SelectionProps): void {
         // Shortcut. Nothing is selected yet. Select the node and we are done.
         if (this._selectedNodes.length === 0) {
             node.selected = true;
@@ -137,7 +136,7 @@ export class TreeSelectionService implements ITreeSelectionService {
             return;
         }
 
-        const multi = options && options.multi;
+        const multi = StructuredSelection.SelectionType.isMulti((props || {}).selectionType);
         const index = this._selectedNodes.indexOf(node);
         let changed = false;
 
@@ -149,7 +148,7 @@ export class TreeSelectionService implements ITreeSelectionService {
                 changed = true;
             } else {
                 // length === 0 => We already covered this case. Nothing to do.
-                // length === 1 => The node we wan to select is already selected. Nothing to do.
+                // length === 1 => The node we want to select is already selected. Nothing to do.
                 // length !== 1 => We need to unlink the selected node and put it into the start position.
                 if (this._selectedNodes.length !== 1) {
                     node.selected = true;

@@ -971,7 +971,7 @@ export class TaskService implements TaskConfigurationClient {
         }
         const selectedText: string = this.editorManager.currentEditor.editor.document.getText(selectedRange).trimRight() + '\n';
         let terminal = this.terminalService.currentTerminal;
-        if (!terminal) {
+        if (!terminal || terminal.kind !== 'user' || (await terminal.hasChildProcesses())) {
             terminal = <TerminalWidget>await this.terminalService.newTerminal(<TerminalWidgetFactoryOptions>{ created: new Date().toString() });
             await terminal.start();
             this.terminalService.activateTerminal(terminal);

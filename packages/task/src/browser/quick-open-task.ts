@@ -334,13 +334,7 @@ export class QuickOpenTask implements QuickOpenModel, QuickOpenHandler {
                 if (defaultBuildOrTestTasks.length === 1) { // run the default build / test task
                     const defaultBuildOrTestTask = defaultBuildOrTestTasks[0];
                     const taskToRun = (defaultBuildOrTestTask as TaskRunQuickOpenItem).getTask();
-                    const scope = taskToRun._scope;
-
-                    if (this.taskDefinitionRegistry && !!this.taskDefinitionRegistry.getDefinition(taskToRun)) {
-                        this.taskService.run(taskToRun.source, taskToRun.label, scope);
-                    } else {
-                        this.taskService.run(taskToRun._source, taskToRun.label, scope);
-                    }
+                    this.taskService.run(taskToRun.id);
                     return;
                 }
 
@@ -427,7 +421,7 @@ export class QuickOpenTask implements QuickOpenModel, QuickOpenHandler {
 
         const filteredProvidedTasks: TaskConfiguration[] = [];
         providedTasks.forEach(provided => {
-            const exist = [...filteredRecentTasks, ...configuredTasks].some(t => this.taskDefinitionRegistry.compareTasks(provided, t));
+            const exist = [...filteredRecentTasks, ...configuredTasks].some(t => t.id._key === provided.id._key);
             if (!exist) {
                 filteredProvidedTasks.push(provided);
             }
@@ -435,7 +429,7 @@ export class QuickOpenTask implements QuickOpenModel, QuickOpenHandler {
 
         const filteredConfiguredTasks: TaskConfiguration[] = [];
         configuredTasks.forEach(configured => {
-            const exist = filteredRecentTasks.some(t => this.taskDefinitionRegistry.compareTasks(configured, t));
+            const exist = filteredRecentTasks.some(t => t.id._key === configured.id._key);
             if (!exist) {
                 filteredConfiguredTasks.push(configured);
             }
@@ -497,13 +491,7 @@ export class TaskRunQuickOpenItem extends QuickOpenGroupItem {
         if (mode !== QuickOpenMode.OPEN) {
             return false;
         }
-
-        const scope = this.task._scope;
-        if (this.taskDefinitionRegistry && !!this.taskDefinitionRegistry.getDefinition(this.task)) {
-            this.taskService.run(this.task.source || this.task._source, this.task.label, scope);
-        } else {
-            this.taskService.run(this.task._source, this.task.label, scope);
-        }
+        this.taskService.run(this.task.id);
         return true;
     }
 }

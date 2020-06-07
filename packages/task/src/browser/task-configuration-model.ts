@@ -73,6 +73,7 @@ export class TaskConfigurationModel implements Disposable {
     }
 
     setConfigurations(value: object): Promise<boolean> {
+        // TODO Liang investigate if we need to remove `id` and other properties from the config object
         return this.preferences.setPreference('tasks.tasks', value, this.getWorkspaceFolder());
     }
 

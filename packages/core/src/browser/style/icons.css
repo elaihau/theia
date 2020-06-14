@@ -50,6 +50,10 @@
 	background: var(--theia-icon-add) center center no-repeat;
 }
 
+.theia-expand-icon {
+    background: var(--theia-icon-expand) center center no-repeat;
+}
+
 @keyframes theia-spin {
 	100% {
 		transform:rotate(360deg);

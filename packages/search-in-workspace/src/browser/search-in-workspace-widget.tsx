@@ -225,6 +225,11 @@ export class SearchInWorkspaceWidget extends BaseWidget implements StatefulWidge
         this.update();
     }
 
+    expandAll(): void {
+        this.resultTreeWidget.expandAll();
+        this.update();
+    }
+
     clear(): void {
         this.searchTerm = '';
         this.replaceTerm = '';

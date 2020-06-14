@@ -63,6 +63,12 @@ export namespace SearchInWorkspaceCommands {
         label: 'Collapse All',
         iconClass: 'theia-collapse-all-icon'
     };
+    export const EXPAND_ALL: Command = {
+        id: 'search-in-workspace.expand-all',
+        category: SEARCH_CATEGORY,
+        label: 'Expand All',
+        iconClass: 'theia-expand-icon'
+    };
     export const CLEAR_ALL: Command = {
         id: 'search-in-workspace.clear-all',
         category: SEARCH_CATEGORY,
@@ -154,6 +160,11 @@ export class SearchInWorkspaceFrontendContribution extends AbstractViewContribut
             isEnabled: w => this.withWidget(w, widget => widget.hasResultList()),
             isVisible: w => this.withWidget(w, () => true)
         });
+        commands.registerCommand(SearchInWorkspaceCommands.EXPAND_ALL, {
+            execute: w => this.withWidget(w, widget => widget.expandAll()),
+            isEnabled: w => this.withWidget(w, widget => widget.hasResultList()),
+            isVisible: w => this.withWidget(w, () => true)
+        });
         commands.registerCommand(SearchInWorkspaceCommands.CLEAR_ALL, {
             execute: w => this.withWidget(w, widget => widget.clear()),
             isEnabled: w => this.withWidget(w, widget => widget.hasResultList()),
@@ -237,6 +248,13 @@ export class SearchInWorkspaceFrontendContribution extends AbstractViewContribut
             id: SearchInWorkspaceCommands.COLLAPSE_ALL.id,
             command: SearchInWorkspaceCommands.COLLAPSE_ALL.id,
             tooltip: SearchInWorkspaceCommands.COLLAPSE_ALL.label,
+            priority: 3,
+            onDidChange
+        });
+        toolbarRegistry.registerItem({
+            id: SearchInWorkspaceCommands.EXPAND_ALL.id,
+            command: SearchInWorkspaceCommands.EXPAND_ALL.id,
+            tooltip: SearchInWorkspaceCommands.EXPAND_ALL.label,
             priority: 3,
             onDidChange
         });

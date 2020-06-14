@@ -191,9 +191,27 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
 
     collapseAll(): void {
         this.resultTree.forEach(rootFolderNode => {
-            rootFolderNode.children.forEach(fileNode => this.expansionService.collapseNode(fileNode));
+            rootFolderNode.children.forEach(fileNode => this.expansionService.toggleNodeExpansion(fileNode));
             if (rootFolderNode.visible) {
-                this.expansionService.collapseNode(rootFolderNode);
+                this.expansionService.toggleNodeExpansion(rootFolderNode);
+                // this.expansionService.collapseNode(rootFolderNode);
+            }
+        });
+    }
+
+    // protected toggleAll(toggle: 'expand' | 'collapse'): void {
+    //     if (toggle === 'expand') {
+
+    //     } else if (toggle === 'collapse') {
+
+    //     }
+    // }
+
+    expandAll(): void {
+        this.resultTree.forEach(rootFolderNode => {
+            rootFolderNode.children.forEach(fileNode => this.expansionService.toggleNodeExpansion(fileNode));
+            if (rootFolderNode.visible) {
+                this.expansionService.toggleNodeExpansion(rootFolderNode);
             }
         });
     }
